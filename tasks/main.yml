@@ -135,7 +135,6 @@
       {% if docker_shm_size %}--docker-shm-size "{{ docker_shm_size }}"{% endif %}
       {% if docker_pull_policy %}--docker-pull-policy "{{ docker_pull_policy }}"{% endif %}
       {% if docker_helper_image %}--docker-helper-image "{{ docker_helper_image }}"{% endif %}
-      {% if docker_pull_timeout %}--docker-pull-timeout "{{ docker_pull_timeout }}"{% endif %}
       {% if docker_retry %}--docker-retry "{{ docker_retry }}"{% endif %}
       {% if docker_isolation %}--docker-isolation "{{ docker_isolation }}"{% endif %}
       {% if docker_services_privileged %}--docker-services_privileged "{{ docker_services_privileged | lower }}"{% endif %}

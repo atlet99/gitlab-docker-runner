@@ -134,8 +134,6 @@ docker_allowed_privileged_services: []
 # ------------------------------
 # Docker API timeout
 docker_timeout: "60s"
-# Docker pull timeout
-docker_pull_timeout: 300
 # Docker retry count
 docker_retry: 3
 
