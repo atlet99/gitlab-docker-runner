@@ -5,8 +5,10 @@
 gitlab_runner_version: "latest"
 # Number of concurrent jobs
 gitlab_runner_concurrent: 4
-# How often to check for new jobs (in seconds)
-gitlab_runner_check_interval: 3
+
+# ------------------------------
+# Global GitLab Runner settings (for config.toml template)
+# ------------------------------
 # Log level (debug, info, warn, error, fatal, panic)
 gitlab_runner_log_level: "info"
 # Log format (runner, text, json)
@@ -25,9 +27,14 @@ session_server_listen_address: ""
 session_server_advertise_address: ""
 session_server_timeout: 1800
 
+# Feature flags
+runner_feature_flags: {}
+
 # ------------------------------
 # Runner config
 # ------------------------------
+# How often to check for new jobs (in seconds)
+gitlab_runner_check_interval: 3
 # GitLab instance URL
 gitlab_runner_url: "https://gitlab.com/"
 # Authentication token for modern registration method
@@ -83,6 +90,14 @@ docker_helper_image: ""
 # ------------------------------
 # Docker Executor advanced
 # ------------------------------
+# Disable OOM killer for containers
+docker_oom_kill_disable: false
+# Docker API timeout
+docker_timeout: "60s"
+# Docker pull timeout
+docker_pull_timeout: 3600
+# Docker retry count
+docker_retry: 3
 # CPU set for containers
 docker_cpuset_cpus: ""
 # Memory set for containers
