@@ -34,7 +34,5 @@ galaxy_info:
     - container
 
 dependencies:
-  - name: geerlingguy.docker
-    version: ">=7.0.0"
-  - name: community.docker
-    version: ">=3.0.0" 
+  - geerlingguy.docker
+  - community.docker 

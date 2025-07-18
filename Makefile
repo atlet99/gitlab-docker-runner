@@ -28,6 +28,7 @@ install:
 	. venv/bin/activate && pip install -r requirements-dev.txt
 	. venv/bin/activate && ansible-galaxy collection install community.docker
 	. venv/bin/activate && ansible-galaxy install geerlingguy.docker
+	. venv/bin/activate && ansible-galaxy install -r requirements.yml
 
 # Run all tests
 test: lint molecule-test
