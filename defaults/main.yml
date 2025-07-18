@@ -69,8 +69,6 @@ docker_volumes:
   - "/cache:/cache"
 # Docker image pull policy
 docker_pull_policy: "if-not-present"
-# Disable OOM killer for containers
-docker_oom_kill_disable: false
 # Shared memory size for containers (in bytes)
 docker_shm_size: 67108864 # 64 MB
 # Allowed pull policies
@@ -128,20 +126,6 @@ docker_services_privileged: false
 docker_allowed_privileged_images: []
 # Allowed privileged services
 docker_allowed_privileged_services: []
-
-# ------------------------------
-# Docker timeouts & retries
-# ------------------------------
-# Docker API timeout
-docker_timeout: "60s"
-# Docker retry count
-docker_retry: 3
-
-# ------------------------------
-# Feature Flags
-# ------------------------------
-# GitLab Runner feature flags
-runner_feature_flags: {}
 
 # ------------------------------
 # Network & build dir
