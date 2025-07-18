@@ -1,0 +1,20 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  tasks:
+    - name: Install Docker
+      include_role:
+        name: geerlingguy.docker
+
+    - name: Deploy GitLab Runner with modern registration method
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        gitlab_runner_url: "https://gitlab.com/"
+        gitlab_runner_token: "test-token"
+        gitlab_runner_name: "test-runner"
+        gitlab_runner_registration_method: "modern"
+        gitlab_runner_tags:
+          - "test"
+          - "docker" 

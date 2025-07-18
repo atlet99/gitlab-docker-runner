@@ -1,0 +1,129 @@
+# ------------------------------
+# Global GitLab Runner settings
+# ------------------------------
+gitlab_runner_version: "latest"
+gitlab_runner_concurrent: 4
+gitlab_runner_check_interval: 3
+gitlab_runner_log_level: "info"
+gitlab_runner_log_format: "runner"
+gitlab_runner_sentry_dsn: ""
+gitlab_runner_connection_max_age: "15m"
+gitlab_runner_listen_address: ""
+gitlab_runner_shutdown_timeout: 30
+
+# Session server
+session_server_listen_address: ""
+session_server_advertise_address: ""
+session_server_timeout: 1800
+
+# ------------------------------
+# Runner config
+# ------------------------------
+gitlab_runner_url: "https://gitlab.com/"
+gitlab_runner_token: ""
+gitlab_runner_registration_token: ""  # Legacy registration token for old format
+gitlab_runner_name: "my-runner"
+gitlab_runner_tags: []
+gitlab_runner_environment_flags: []
+gitlab_runner_output_limit: 0
+
+# Registration method selection
+# Set to 'legacy' to use registration_token with gitlab-runner register command
+# Set to 'modern' to use token directly in config.toml (default)
+gitlab_runner_registration_method: "modern"
+
+# ------------------------------
+# Container name and directories
+# ------------------------------
+gitlab_runner_container_name: "gitlab-runner"
+runner_directory: "/var/lib/gitlab-runner"
+
+# ------------------------------
+# Docker Executor basic
+# ------------------------------
+docker_image: "alpine:latest"
+docker_privileged: false
+docker_volumes:
+  - "/var/run/docker.sock:/var/run/docker.sock"
+  - "/cache:/cache"
+docker_pull_policy: "if-not-present"
+docker_oom_kill_disable: false
+docker_shm_size: 67108864 # 64 MB
+docker_allowed_pull_policies: ["if-not-present", "always"]
+docker_allowed_images: []
+docker_allowed_services: []
+docker_helper_image: ""  # gitlab-runner-helper, linux suffix unused and deprecated
+
+# ------------------------------
+# Docker Executor advanced
+# ------------------------------
+docker_cpuset_cpus: ""
+docker_cpuset_mems: ""
+docker_cpus: ""
+docker_cap_add: []
+docker_cap_drop: []
+docker_devices: []
+docker_userns_mode: ""
+docker_disable_cache: false
+docker_wait_for_services_timeout: 30
+docker_extra_hosts: []
+docker_sysctls: {}
+docker_dns: []
+docker_dns_search: []
+docker_security_opt: []
+docker_runtime: ""
+docker_hostname: ""
+docker_user: ""
+docker_isolation: ""  # For Windows only
+
+docker_services_privileged: false
+docker_allowed_privileged_images: []
+docker_allowed_privileged_services: []
+
+# ------------------------------
+# Docker timeouts & retries
+# ------------------------------
+docker_timeout: "60s"
+docker_pull_timeout: 300
+docker_retry: 3
+
+# ------------------------------
+# Feature Flags
+# ------------------------------
+runner_feature_flags: {}
+
+# ------------------------------
+# Network & build dir
+# ------------------------------
+runner_network_per_build: false
+docker_network_mode: "bridge"
+
+# Optional custom network
+# docker_network: "my-runner-network"
+# docker_network_subnet: "192.168.100.0/24"
+# docker_network_gateway: "192.168.100.1"
+# docker_network_options:
+#   com.docker.network.bridge.enable_ip_masquerade: "true"
+#   com.docker.network.bridge.enable_icc: "false"
+
+# ------------------------------
+# Timezone
+# ------------------------------
+tz: "UTC"
+
+# ------------------------------
+# Cache (S3 example)
+# ------------------------------
+cache_type: ""
+cache_path: ""
+cache_shared: false
+
+cache_s3_server_address: ""
+cache_s3_access_key: ""
+cache_s3_secret_key: ""
+cache_s3_bucket_name: ""
+cache_s3_bucket_location: ""
+cache_s3_insecure: false
+cache_s3_authentication_type: ""
+cache_s3_server_side_encryption: ""
+cache_s3_server_side_encryption_key_id: ""

@@ -1,0 +1,19 @@
+# Ansible
+.ansible
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+# Venv
+venv/
+
+# Docker
+docker/
+
+# Special docs
+*.*-docs.*

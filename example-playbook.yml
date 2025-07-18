@@ -1,0 +1,61 @@
+---
+# Example playbook demonstrating both modern and legacy GitLab Runner registration methods
+- name: Deploy GitLab Runners with different registration methods
+  hosts: gitlab-runners
+  become: true
+  
+  vars:
+    # Common settings
+    gitlab_runner_url: "https://gitlab.company.com/"
+    gitlab_runner_version: "latest"
+    gitlab_runner_concurrent: 4
+    
+    # Docker settings
+    docker_image: "alpine:latest"
+    docker_privileged: false
+    docker_volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/cache:/cache"
+    
+    # Network settings
+    runner_network_per_build: false
+    docker_network_mode: "bridge"
+    
+    # Cache settings
+    cache_type: "s3"
+    cache_s3_server_address: "s3.amazonaws.com"
+    cache_s3_bucket_name: "gitlab-runner-cache"
+    cache_s3_bucket_location: "us-east-1"
+  
+  roles:
+    # Modern registration method example
+    - role: gitlab-docker-runner
+      vars:
+        gitlab_runner_name: "modern-runner"
+        gitlab_runner_registration_method: "modern"
+        gitlab_runner_token: "{{ vault_gitlab_modern_token }}"
+        gitlab_runner_tags:
+          - "docker"
+          - "modern"
+          - "production"
+        cache_s3_access_key: "{{ vault_s3_access_key }}"
+        cache_s3_secret_key: "{{ vault_s3_secret_key }}"
+      tags:
+        - modern
+        - runner
+    
+    # Legacy registration method example
+    - role: gitlab-docker-runner
+      vars:
+        gitlab_runner_name: "legacy-runner"
+        gitlab_runner_registration_method: "legacy"
+        gitlab_runner_registration_token: "{{ vault_gitlab_legacy_token }}"
+        gitlab_runner_tags:
+          - "docker"
+          - "legacy"
+          - "production"
+        cache_s3_access_key: "{{ vault_s3_access_key }}"
+        cache_s3_secret_key: "{{ vault_s3_secret_key }}"
+      tags:
+        - legacy
+        - runner 

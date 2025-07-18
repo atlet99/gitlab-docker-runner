@@ -1,0 +1,131 @@
+---
+- name: Check Docker installation
+  command: docker --version
+  register: docker_check
+  failed_when: docker_check.rc != 0
+  changed_when: false
+
+- name: Create runner data directory
+  file:
+    path: "{{ runner_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Inspect custom network (if needed)
+  command: docker network inspect {{ docker_network }}
+  register: network_check
+  failed_when: network_check.rc not in [0, 1]
+  changed_when: false
+  when:
+    - not runner_network_per_build
+    - docker_network is defined
+
+- name: Create custom network (if needed)
+  command: >
+    docker network create --driver bridge {% if docker_network_subnet is defined %} --subnet={{ docker_network_subnet }} {% endif %} {% if docker_network_gateway is defined %} --gateway={{ docker_network_gateway }} {% endif %} {% if docker_network_options is defined %} {% for key, value in docker_network_options.items() %} --opt {{ key }}={{ value }} {% endfor %} {% endif %} {{ docker_network }}
+  when:
+    - not runner_network_per_build
+    - docker_network is defined
+    - network_check.rc == 1
+
+- name: Generate config.toml for modern registration method
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ runner_directory }}/config.toml"
+    mode: '0600'
+  when: gitlab_runner_registration_method == "modern"
+
+- name: Generate minimal config.toml for legacy registration method
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ runner_directory }}/config.toml"
+    mode: '0600'
+  when: gitlab_runner_registration_method == "legacy"
+
+- name: Start GitLab Runner container for modern registration
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: always
+    recreate: true
+    # Pass a list of dictionaries to `networks`.
+    # If `runner_network_per_build` is true, pass an empty list => no networks.
+    # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
+    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: gitlab_runner_registration_method == "modern"
+
+- name: Start GitLab Runner container for legacy registration
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: always
+    recreate: true
+    # Pass a list of dictionaries to `networks`.
+    # If `runner_network_per_build` is true, pass an empty list => no networks.
+    # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
+    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: gitlab_runner_registration_method == "legacy"
+
+- name: Register runner using legacy method
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: always
+    recreate: false
+    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+    command: >
+      register
+      --non-interactive
+      --url "{{ gitlab_runner_url }}"
+      --registration-token "{{ gitlab_runner_registration_token }}"
+      --name "{{ gitlab_runner_name }}"
+      {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
+      --executor docker
+      --docker-image "{{ docker_image }}"
+      {% if docker_privileged %}--docker-privileged{% endif %}
+      {% if runner_network_per_build %}--docker-network-mode "{{ docker_network_mode }}"{% endif %}
+      {% if docker_volumes %}--docker-volumes "{{ docker_volumes | join(' --docker-volumes ') }}"{% endif %}
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+  register: legacy_registration_result
+  failed_when: legacy_registration_result.ansible_facts.docker_container.State.Running == false
+
+- name: Restart GitLab Runner container after legacy registration
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    state: started
+    restart_policy: always
+    recreate: false
+    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
