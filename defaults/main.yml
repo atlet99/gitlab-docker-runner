@@ -1,14 +1,23 @@
 # ------------------------------
 # Global GitLab Runner settings
 # ------------------------------
+# GitLab Runner version to use
 gitlab_runner_version: "latest"
+# Number of concurrent jobs
 gitlab_runner_concurrent: 4
+# How often to check for new jobs (in seconds)
 gitlab_runner_check_interval: 3
+# Log level (debug, info, warn, error, fatal, panic)
 gitlab_runner_log_level: "info"
+# Log format (runner, text, json)
 gitlab_runner_log_format: "runner"
+# Sentry DSN for error reporting
 gitlab_runner_sentry_dsn: ""
+# Maximum age of connection to GitLab
 gitlab_runner_connection_max_age: "15m"
+# Address to listen on for metrics
 gitlab_runner_listen_address: ""
+# Timeout for graceful shutdown
 gitlab_runner_shutdown_timeout: 30
 
 # Session server
@@ -19,12 +28,19 @@ session_server_timeout: 1800
 # ------------------------------
 # Runner config
 # ------------------------------
+# GitLab instance URL
 gitlab_runner_url: "https://gitlab.com/"
+# Authentication token for modern registration method
 gitlab_runner_token: ""
-gitlab_runner_registration_token: ""  # Legacy registration token for old format
+# Registration token for legacy registration method
+gitlab_runner_registration_token: ""
+# Runner name
 gitlab_runner_name: "my-runner"
+# Runner tags
 gitlab_runner_tags: []
+# Environment variables for runner
 gitlab_runner_environment_flags: []
+# Output limit in bytes (0 = unlimited)
 gitlab_runner_output_limit: 0
 
 # Registration method selection
@@ -35,89 +51,141 @@ gitlab_runner_registration_method: "modern"
 # ------------------------------
 # Container name and directories
 # ------------------------------
+# Docker container name for GitLab Runner
 gitlab_runner_container_name: "gitlab-runner"
+# Directory on host to store runner configuration
 runner_directory: "/var/lib/gitlab-runner"
 
 # ------------------------------
 # Docker Executor basic
 # ------------------------------
+# Default Docker image for jobs
 docker_image: "alpine:latest"
+# Run containers in privileged mode
 docker_privileged: false
+# Docker volumes to mount
 docker_volumes:
   - "/var/run/docker.sock:/var/run/docker.sock"
   - "/cache:/cache"
+# Docker image pull policy
 docker_pull_policy: "if-not-present"
+# Disable OOM killer for containers
 docker_oom_kill_disable: false
+# Shared memory size for containers (in bytes)
 docker_shm_size: 67108864 # 64 MB
+# Allowed pull policies
 docker_allowed_pull_policies: ["if-not-present", "always"]
+# Allowed Docker images
 docker_allowed_images: []
+# Allowed Docker services
 docker_allowed_services: []
-docker_helper_image: ""  # gitlab-runner-helper, linux suffix unused and deprecated
+# Helper image for GitLab Runner
+docker_helper_image: ""
 
 # ------------------------------
 # Docker Executor advanced
 # ------------------------------
+# CPU set for containers
 docker_cpuset_cpus: ""
+# Memory set for containers
 docker_cpuset_mems: ""
+# CPU limit for containers
 docker_cpus: ""
+# Docker capabilities to add
 docker_cap_add: []
+# Docker capabilities to drop
 docker_cap_drop: []
+# Docker devices to mount
 docker_devices: []
+# User namespace mode
 docker_userns_mode: ""
+# Disable Docker layer caching
 docker_disable_cache: false
+# Timeout for waiting for services
 docker_wait_for_services_timeout: 30
+# Extra hosts for containers
 docker_extra_hosts: []
+# Sysctls for containers
 docker_sysctls: {}
+# DNS servers for containers
 docker_dns: []
+# DNS search domains for containers
 docker_dns_search: []
+# Security options for containers
 docker_security_opt: []
+# Docker runtime
 docker_runtime: ""
+# Hostname for containers
 docker_hostname: ""
+# User for containers
 docker_user: ""
-docker_isolation: ""  # For Windows only
+# Container isolation (Windows only)
+docker_isolation: ""
 
+# Run services in privileged mode
 docker_services_privileged: false
+# Allowed privileged images
 docker_allowed_privileged_images: []
+# Allowed privileged services
 docker_allowed_privileged_services: []
 
 # ------------------------------
 # Docker timeouts & retries
 # ------------------------------
+# Docker API timeout
 docker_timeout: "60s"
+# Docker pull timeout
 docker_pull_timeout: 300
+# Docker retry count
 docker_retry: 3
 
 # ------------------------------
 # Feature Flags
 # ------------------------------
+# GitLab Runner feature flags
 runner_feature_flags: {}
 
 # ------------------------------
 # Network & build dir
 # ------------------------------
+# Create network per build
 runner_network_per_build: false
+# Docker network mode
 docker_network_mode: "bridge"
 
 # Optional custom network
-# docker_network: "my-runner-network"
-# docker_network_subnet: "192.168.100.0/24"
-# docker_network_gateway: "192.168.100.1"
-# docker_network_options:
-#   com.docker.network.bridge.enable_ip_masquerade: "true"
-#   com.docker.network.bridge.enable_icc: "false"
+# Custom Docker network name for runner container
+docker_network: ""
+# Subnet for custom network (CIDR notation)
+docker_network_subnet: ""
+# Gateway for custom network
+docker_network_gateway: ""
+# Additional network options
+docker_network_options: {}
 
 # ------------------------------
 # Timezone
 # ------------------------------
+# Timezone for runner container
 tz: "UTC"
 
 # ------------------------------
-# Cache (S3 example)
+# Network fallback
 # ------------------------------
+# Fallback IP address if ansible_default_ipv4.address is not available
+fallback_ip_address: "127.0.0.1"
+
+# ------------------------------
+# Cache configuration
+# ------------------------------
+# Cache type (s3, gcs, azure, local)
 cache_type: ""
+# Cache path
 cache_path: ""
+# Share cache between runners
 cache_shared: false
 
+# S3 cache configuration
 cache_s3_server_address: ""
 cache_s3_access_key: ""
 cache_s3_secret_key: ""
