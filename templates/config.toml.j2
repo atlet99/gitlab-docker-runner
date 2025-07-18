@@ -47,6 +47,7 @@ concurrent = {{ gitlab_runner_concurrent }}
   {% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
   token = "{{ gitlab_runner_token }}"
   {% endif -%}
+  {# For legacy registration, token will be added automatically after registration #}
   executor = "docker"
 
   {% if gitlab_runner_tags -%}

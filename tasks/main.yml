@@ -79,12 +79,12 @@
       TZ: "{{ tz }}"
   when: gitlab_runner_registration_method == "modern"
 
-- name: Start GitLab Runner container for legacy registration
+- name: Start GitLab Runner container for legacy registration (temporary)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
     state: started
-    restart_policy: always
+    restart_policy: "no"
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
@@ -103,39 +103,34 @@
   when: gitlab_runner_registration_method == "legacy"
 
 - name: Register runner using legacy method
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
-    state: started
-    restart_policy: always
-    recreate: false
-    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
-    volumes:
-      - "{{ runner_directory }}:/etc/gitlab-runner"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    env:
-      TZ: "{{ tz }}"
-    command: >
-      register
-      --non-interactive
-      --url "{{ gitlab_runner_url }}"
-      --registration-token "{{ gitlab_runner_registration_token }}"
-      --name "{{ gitlab_runner_name }}"
-      {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
-      --executor docker
-      --docker-image "{{ docker_image }}"
-      {% if docker_privileged %}--docker-privileged{% endif %}
-      {% if runner_network_per_build %}--docker-network-mode "{{ docker_network_mode }}"{% endif %}
-      {% if docker_volumes %}--docker-volumes "{{ docker_volumes | join(' --docker-volumes ') }}"{% endif %}
-      --docker-extra-hosts "{{ ansible_default_ipv4.address }}:{{ ansible_default_ipv4.address }}"
+  command: >
+    docker exec {{ gitlab_runner_container_name }} gitlab-runner register
+    --non-interactive
+    --url "{{ gitlab_runner_url }}"
+    --registration-token "{{ gitlab_runner_registration_token }}"
+    --name "{{ gitlab_runner_name }}"
+    {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
+    --executor docker
+    --docker-image "{{ docker_image }}"
+    {% if docker_privileged %}--docker-privileged{% endif %}
+    {% if runner_network_per_build %}--docker-network-mode "{{ docker_network_mode }}"{% endif %}
+    {% if docker_volumes %}--docker-volumes "{{ docker_volumes | join(' --docker-volumes ') }}"{% endif %}
+    --docker-extra-hosts "{{ ansible_default_ipv4.address }}:{{ ansible_default_ipv4.address }}"
   when: 
     - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
   register: legacy_registration_result
-  failed_when: 
-    - legacy_registration_result.ansible_facts.docker_container.State.Running == false
-    - legacy_registration_result.ansible_facts.docker_container.State.ExitCode != 0
+  failed_when: legacy_registration_result.rc != 0
+
+- name: Wait for registration to complete
+  wait_for:
+    timeout: 30
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
 
 - name: Check registration logs for errors
   shell: docker logs {{ gitlab_runner_container_name }} 2>&1 | tail -20
@@ -155,12 +150,23 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is changed
 
-- name: Restart GitLab Runner container after legacy registration
+- name: Stop temporary registration container
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
+    state: stopped
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+
+- name: Start GitLab Runner container in normal mode (after registration)
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
     state: started
     restart_policy: always
-    recreate: false
+    recreate: true
     networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
@@ -182,6 +188,26 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is changed
 
+- name: Verify configuration was updated with authentication token
+  shell: docker exec {{ gitlab_runner_container_name }} grep -q "^  token = " /etc/gitlab-runner/config.toml
+  register: token_verification
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+  failed_when: token_verification.rc != 0
+
+- name: Display successful registration message
+  debug:
+    msg: "GitLab Runner successfully registered and authentication token was generated"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+    - token_verification.rc == 0
+
 - name: Verify GitLab Runner configuration
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner verify
   register: runner_verify
@@ -194,3 +220,29 @@
   when: 
     - gitlab_runner_registration_method == "legacy"
     - runner_verify is defined
+
+- name: Check if authentication token was generated after legacy registration
+  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml | grep -E "^  token = " || echo "Token not found"
+  register: token_check
+  when: gitlab_runner_registration_method == "legacy"
+  failed_when: false
+
+- name: Display authentication token status
+  debug:
+    msg: "Authentication token status: {{ token_check.stdout }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - token_check is defined
+
+- name: Show runner status after legacy registration
+  shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list
+  register: runner_status
+  when: gitlab_runner_registration_method == "legacy"
+  failed_when: false
+
+- name: Display runner status
+  debug:
+    var: runner_status.stdout_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - runner_status is defined
