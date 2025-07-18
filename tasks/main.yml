@@ -30,6 +30,23 @@
     - docker_network is defined
     - network_check.rc == 1
 
+- name: Validate GitLab URL for legacy registration
+  uri:
+    url: "{{ gitlab_runner_url }}"
+    method: GET
+    status_code: [200, 401, 403]
+    timeout: 30
+  register: gitlab_url_check
+  when: gitlab_runner_registration_method == "legacy"
+  failed_when: false
+
+- name: Fail if GitLab URL is not accessible
+  fail:
+    msg: "GitLab URL {{ gitlab_runner_url }} is not accessible. Please check the URL and network connectivity."
+  when:
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_url_check.failed
+
 - name: Generate config.toml for modern registration method
   ansible.builtin.template:
     src: config.toml.j2
@@ -80,6 +97,11 @@
       TZ: "{{ tz }}"
   when: gitlab_runner_registration_method == "legacy"
 
+- name: Wait for GitLab Runner container to be ready
+  wait_for:
+    timeout: 30
+  when: gitlab_runner_registration_method == "legacy"
+
 - name: Register runner using legacy method
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
@@ -105,12 +127,33 @@
       {% if docker_privileged %}--docker-privileged{% endif %}
       {% if runner_network_per_build %}--docker-network-mode "{{ docker_network_mode }}"{% endif %}
       {% if docker_volumes %}--docker-volumes "{{ docker_volumes | join(' --docker-volumes ') }}"{% endif %}
+      --docker-extra-hosts "{{ ansible_default_ipv4.address }}:{{ ansible_default_ipv4.address }}"
   when: 
     - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
   register: legacy_registration_result
-  failed_when: legacy_registration_result.ansible_facts.docker_container.State.Running == false
+  failed_when: 
+    - legacy_registration_result.ansible_facts.docker_container.State.Running == false
+    - legacy_registration_result.ansible_facts.docker_container.State.ExitCode != 0
+
+- name: Check registration logs for errors
+  shell: docker logs {{ gitlab_runner_container_name }} 2>&1 | tail -20
+  register: registration_logs
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+
+- name: Display registration logs
+  debug:
+    var: registration_logs.stdout_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
 
 - name: Restart GitLab Runner container after legacy registration
   docker_container:
@@ -129,3 +172,25 @@
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is changed
+
+- name: Wait for GitLab Runner to be ready after registration
+  wait_for:
+    timeout: 60
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+
+- name: Verify GitLab Runner configuration
+  shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner verify
+  register: runner_verify
+  when: gitlab_runner_registration_method == "legacy"
+  failed_when: false
+
+- name: Display runner verification results
+  debug:
+    var: runner_verify.stdout_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - runner_verify is defined

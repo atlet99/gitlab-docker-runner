@@ -304,6 +304,12 @@ The role includes basic health checks for:
    - Check that registration token has not expired
    - Ensure GitLab instance supports the registration method
 
+6. **400 Bad Request errors**
+   - Check registration token validity
+   - Verify GitLab URL is correct and accessible
+   - Ensure runner has proper network access
+   - Check SSL/TLS certificates if using HTTPS
+
 ### Debug Mode
 ```bash
 # Run with verbose output
@@ -332,6 +338,74 @@ docker logs gitlab-runner | grep -i register
 # Check final config.toml
 cat /var/lib/gitlab-runner/config.toml
 ```
+
+### Diagnostic Script
+
+The role includes a diagnostic script to help troubleshoot issues:
+
+```bash
+# Run diagnostic script
+./scripts/diagnose-runner.sh [container-name] [runner-directory]
+
+# Example
+./scripts/diagnose-runner.sh gitlab-runner /var/lib/gitlab-runner
+```
+
+The diagnostic script checks:
+- Container status and logs
+- Configuration file validity
+- Network connectivity
+- Docker socket access
+- GitLab connectivity
+- Runner registration status
+- Common error patterns
+
+### 400 Bad Request Error Resolution
+
+If you're getting `400 Bad Request` errors with legacy registration:
+
+1. **Check registration token**:
+   ```bash
+   # Verify token in GitLab admin panel
+   # Ensure token hasn't expired
+   # Check token permissions
+   ```
+
+2. **Verify GitLab URL**:
+   ```bash
+   # Test connectivity from runner host
+   curl -I https://git.testenv.com
+   
+   # Check SSL certificates
+   openssl s_client -connect git.testenv.com:443
+   ```
+
+3. **Check runner configuration**:
+   ```bash
+   # View current config
+   cat /var/lib/gitlab-runner/config.toml
+   
+   # Check runner status
+   docker exec gitlab-runner gitlab-runner verify
+   ```
+
+4. **Network troubleshooting**:
+   ```bash
+   # Check DNS resolution
+   nslookup git.testenv.com
+   
+   # Check firewall rules
+   iptables -L
+   ```
+
+5. **Re-register runner**:
+   ```bash
+   # Remove old config
+   rm /var/lib/gitlab-runner/config.toml
+   
+   # Restart container to trigger re-registration
+   docker restart gitlab-runner
+   ```
 
 ## Development
 
@@ -372,6 +446,8 @@ For issues and questions:
 - Added `gitlab_runner_registration_method` variable to choose between modern and legacy methods
 - Enhanced documentation for both registration approaches
 - Improved error handling for registration process
+- Added diagnostic script for troubleshooting
+- Enhanced validation and error reporting
 
 ### Version 1.0.0
 - Initial release
