@@ -117,7 +117,12 @@ docker_network_mode: "bridge"
 docker_network: "my-runner-network"
 docker_network_subnet: "192.168.100.0/24"
 docker_network_gateway: "192.168.100.1"
+
+# Or use default bridge network (recommended for most cases)
+docker_network: ""  # Leave empty to use default bridge
 ```
+
+**Note**: If you don't specify a custom network, the runner will use the default Docker bridge network.
 
 #### Cache Configuration
 ```yaml

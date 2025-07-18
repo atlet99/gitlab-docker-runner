@@ -154,11 +154,11 @@ runner_network_per_build: false
 docker_network_mode: "bridge"
 
 # Optional custom network
-# Custom Docker network name for runner container
+# Custom Docker network name for runner container (leave empty to use default bridge)
 docker_network: ""
-# Subnet for custom network (CIDR notation)
+# Subnet for custom network (CIDR notation, e.g., "192.168.100.0/24")
 docker_network_subnet: ""
-# Gateway for custom network
+# Gateway for custom network (e.g., "192.168.100.1")
 docker_network_gateway: ""
 # Additional network options
 docker_network_options: {}

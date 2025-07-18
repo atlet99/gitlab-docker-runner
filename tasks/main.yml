@@ -21,13 +21,15 @@
   when:
     - not runner_network_per_build
     - docker_network is defined
+    - docker_network != ""
 
 - name: Create custom network (if needed)
   command: >
-    docker network create --driver bridge {% if docker_network_subnet is defined %} --subnet={{ docker_network_subnet }} {% endif %} {% if docker_network_gateway is defined %} --gateway={{ docker_network_gateway }} {% endif %} {% if docker_network_options is defined %} {% for key, value in docker_network_options.items() %} --opt {{ key }}={{ value }} {% endfor %} {% endif %} {{ docker_network }}
+    docker network create --driver bridge {% if docker_network_subnet is defined and docker_network_subnet != "" %} --subnet={{ docker_network_subnet }} {% endif %} {% if docker_network_gateway is defined and docker_network_gateway != "" %} --gateway={{ docker_network_gateway }} {% endif %} {% if docker_network_options is defined and docker_network_options|length > 0 %} {% for key, value in docker_network_options.items() %} --opt {{ key }}={{ value }} {% endfor %} {% endif %} {{ docker_network }}
   when:
     - not runner_network_per_build
     - docker_network is defined
+    - docker_network != ""
     - network_check.rc == 1
 
 - name: Validate GitLab URL for legacy registration
@@ -84,7 +86,7 @@
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -102,7 +104,7 @@
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -286,7 +288,7 @@
     state: started
     restart_policy: always
     recreate: true
-    networks: "{{ [] if runner_network_per_build else [{ 'name': docker_network|default('bridge') }] }}"
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
