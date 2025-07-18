@@ -61,6 +61,19 @@
     mode: '0600'
   when: gitlab_runner_registration_method == "legacy"
 
+- name: Verify config file was created for legacy registration
+  stat:
+    path: "{{ runner_directory }}/config.toml"
+  register: config_file_check
+  when: gitlab_runner_registration_method == "legacy"
+
+- name: Display config file status
+  debug:
+    msg: "Config file exists: {{ config_file_check.stat.exists }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - config_file_check is defined
+
 - name: Start GitLab Runner container for modern registration
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
@@ -139,7 +152,6 @@
     - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
-    - legacy_registration_result is changed
 
 - name: Display registration logs
   debug:
@@ -148,7 +160,24 @@
     - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
-    - legacy_registration_result is changed
+
+- name: Check registration command output
+  debug:
+    var: legacy_registration_result.stdout_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+
+- name: Check registration command stderr
+  debug:
+    var: legacy_registration_result.stderr_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
 
 - name: Stop temporary registration container
   docker_container:
@@ -188,6 +217,15 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is changed
 
+- name: Wait for new container to be ready
+  wait_for:
+    timeout: 30
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+
 - name: Verify configuration was updated with authentication token
   shell: docker exec {{ gitlab_runner_container_name }} grep -q "^  token = " /etc/gitlab-runner/config.toml
   register: token_verification
@@ -208,10 +246,33 @@
     - legacy_registration_result is changed
     - token_verification.rc == 0
 
+- name: Display registration failure message
+  debug:
+    msg: |
+      GitLab Runner registration appears to have failed.
+      Please check:
+      1. Registration token validity and expiration
+      2. GitLab URL accessibility
+      3. Network connectivity
+      4. SSL/TLS certificates
+      5. GitLab instance status
+      
+      You can run the diagnostic script: ./scripts/diagnose-legacy-registration.sh
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+    - token_verification.rc != 0
+
 - name: Verify GitLab Runner configuration
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner verify
   register: runner_verify
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
   failed_when: false
 
 - name: Display runner verification results
@@ -224,8 +285,29 @@
 - name: Check if authentication token was generated after legacy registration
   shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml | grep -E "^  token = " || echo "Token not found"
   register: token_check
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
   failed_when: false
+
+- name: Display full configuration file content
+  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml
+  register: config_content
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
+  failed_when: false
+
+- name: Show configuration file content
+  debug:
+    var: config_content.stdout_lines
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - config_content is defined
 
 - name: Display authentication token status
   debug:
@@ -237,7 +319,11 @@
 - name: Show runner status after legacy registration
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list
   register: runner_status
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is changed
   failed_when: false
 
 - name: Display runner status

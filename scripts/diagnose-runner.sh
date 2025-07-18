@@ -6,11 +6,10 @@
 set -e
 
 CONTAINER_NAME="${1:-gitlab-runner}"
-RUNNER_DIR="${2:-/var/lib/gitlab-runner}"
 
 echo "=== GitLab Runner Diagnostic Script ==="
 echo "Container: $CONTAINER_NAME"
-echo "Runner directory: $RUNNER_DIR"
+echo "Note: This script checks the configuration inside the container"
 echo ""
 
 # Check if container exists and is running
@@ -41,14 +40,26 @@ echo ""
 
 # Check config.toml
 echo "3. Checking config.toml..."
-if [ -f "$RUNNER_DIR/config.toml" ]; then
-    echo "✓ Config file exists"
-    echo "Permissions: $(ls -la "$RUNNER_DIR/config.toml")"
+CONFIG_FILE="/etc/gitlab-runner/config.toml"
+if docker exec "$CONTAINER_NAME" test -f "$CONFIG_FILE" 2>/dev/null; then
+    echo "✓ Config file exists in container at $CONFIG_FILE"
     echo ""
     echo "Config content:"
-    cat "$RUNNER_DIR/config.toml"
+    docker exec "$CONTAINER_NAME" cat "$CONFIG_FILE" 2>/dev/null || echo "Failed to read config file"
 else
-    echo "✗ Config file not found at $RUNNER_DIR/config.toml"
+    echo "✗ Config file not found at $CONFIG_FILE in container"
+    echo "Checking alternative locations..."
+    
+    # Check alternative locations
+    ALTERNATIVE_PATHS=("/var/lib/gitlab-runner/config.toml" "/config.toml")
+    for alt_path in "${ALTERNATIVE_PATHS[@]}"; do
+        if docker exec "$CONTAINER_NAME" test -f "$alt_path" 2>/dev/null; then
+            echo "✓ Config file found at $alt_path"
+            echo "Config content:"
+            docker exec "$CONTAINER_NAME" cat "$alt_path" 2>/dev/null || echo "Failed to read config file"
+            break
+        fi
+    done
 fi
 
 echo ""
@@ -75,8 +86,9 @@ echo ""
 
 # Check GitLab connectivity
 echo "6. Checking GitLab connectivity..."
-if [ -f "$RUNNER_DIR/config.toml" ]; then
-    GITLAB_URL=$(grep -E '^[[:space:]]*url[[:space:]]*=' "$RUNNER_DIR/config.toml" | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/')
+CONFIG_FILE="/etc/gitlab-runner/config.toml"
+if docker exec "$CONTAINER_NAME" test -f "$CONFIG_FILE" 2>/dev/null; then
+    GITLAB_URL=$(docker exec "$CONTAINER_NAME" grep -E '^[[:space:]]*url[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/')
     if [ -n "$GITLAB_URL" ]; then
         echo "GitLab URL from config: $GITLAB_URL"
         if docker exec "$CONTAINER_NAME" curl -s --connect-timeout 10 "$GITLAB_URL" >/dev/null 2>&1; then
@@ -87,6 +99,8 @@ if [ -f "$RUNNER_DIR/config.toml" ]; then
     else
         echo "? GitLab URL not found in config"
     fi
+else
+    echo "? Config file not accessible, cannot check GitLab connectivity"
 fi
 
 echo ""
@@ -114,7 +128,8 @@ echo ""
 echo "8. Checking for common issues..."
 
 # Check if runner is registered
-if [ -f "$RUNNER_DIR/config.toml" ] && grep -q "token" "$RUNNER_DIR/config.toml"; then
+CONFIG_FILE="/etc/gitlab-runner/config.toml"
+if docker exec "$CONTAINER_NAME" test -f "$CONFIG_FILE" 2>/dev/null && docker exec "$CONTAINER_NAME" grep -q "token" "$CONFIG_FILE" 2>/dev/null; then
     echo "✓ Runner appears to be registered (token found in config)"
 else
     echo "✗ Runner may not be registered (no token in config)"

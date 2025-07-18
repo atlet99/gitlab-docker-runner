@@ -339,26 +339,52 @@ docker logs gitlab-runner | grep -i register
 cat /var/lib/gitlab-runner/config.toml
 ```
 
-### Diagnostic Script
+### Diagnostic Scripts
 
-The role includes a diagnostic script to help troubleshoot issues:
+The role includes multiple diagnostic scripts to help troubleshoot issues:
 
 ```bash
-# Run diagnostic script
-./scripts/diagnose-runner.sh [container-name] [runner-directory]
+# Basic diagnostic script
+./scripts/diagnose-runner.sh [container-name]
 
-# Example
-./scripts/diagnose-runner.sh gitlab-runner /var/lib/gitlab-runner
+# Legacy registration specific diagnostic
+./scripts/diagnose-legacy-registration.sh [container-name]
+
+# Detailed debug script for legacy registration
+./scripts/debug-legacy-registration.sh [container-name]
+
+# Examples
+./scripts/diagnose-runner.sh gitlab-runner
+./scripts/diagnose-legacy-registration.sh gitlab-runner
+./scripts/debug-legacy-registration.sh gitlab-runner
 ```
 
-The diagnostic script checks:
+#### Diagnostic Script Features
+
+**Basic Diagnostic Script** (`diagnose-runner.sh`):
 - Container status and logs
-- Configuration file validity
+- Configuration file validity (checks inside container)
 - Network connectivity
 - Docker socket access
 - GitLab connectivity
 - Runner registration status
 - Common error patterns
+
+**Legacy Registration Diagnostic** (`diagnose-legacy-registration.sh`):
+- Registration-specific checks
+- Authentication token validation
+- Registration process analysis
+- Configuration file analysis
+- Runner status verification
+
+**Debug Script** (`debug-legacy-registration.sh`):
+- Comprehensive container analysis
+- Full log examination
+- Detailed configuration analysis
+- Token format validation
+- Network connectivity tests
+- Error pattern detection
+- Detailed recommendations
 
 ### 400 Bad Request Error Resolution
 
@@ -440,6 +466,14 @@ For issues and questions:
 - Review GitLab Runner documentation
 
 ## Changelog
+
+### Version 1.2.0
+- Fixed legacy registration process to properly handle authentication token generation
+- Improved container lifecycle management for legacy registration
+- Enhanced diagnostic capabilities with multiple specialized scripts
+- Added comprehensive error detection and reporting
+- Improved validation of registration process
+- Enhanced troubleshooting documentation
 
 ### Version 1.1.0
 - Added support for legacy registration method using `registration_token`
