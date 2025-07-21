@@ -128,7 +128,7 @@
       {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
       --executor docker
       --docker-image "{{ docker_image }}"
-      {% if docker_privileged %}--docker-privileged{% endif %}
+      {% if docker_privileged %}--docker-privileged {% endif %}
 
       {% if docker_volumes %}{% for volume in docker_volumes %}--docker-volumes "{{ volume }}" {% endfor %}{% endif %}
       --docker-extra-hosts "{{ ansible_default_ipv4.address | default(fallback_ip_address) }}:{{ ansible_default_ipv4.address | default(fallback_ip_address) }}"
