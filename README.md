@@ -257,6 +257,22 @@ The role generates a `config.toml` file based on the Jinja2 template in `templat
 - Implement proper firewall rules
 - Use TLS for GitLab communication
 
+### Host Network Mode
+For better connectivity to local services (like S3-compatible storage), you can use host network mode:
+
+```yaml
+# Use host network for containers
+docker_use_host_network: true
+
+# This will:
+# - Use host network for job containers
+# - Allow direct access to host network interfaces
+# - Improve connectivity to local services
+# - Override docker_network_mode setting
+```
+
+**Note**: Host network mode provides better connectivity but reduces network isolation.
+
 ## Monitoring and Logging
 
 ### Log Configuration
@@ -275,6 +291,51 @@ The role includes basic health checks for:
 - Prometheus metrics (if enabled)
 - Container resource usage
 - Job execution statistics
+
+## S3 Cache Configuration
+
+### Legacy Registration with S3 Cache
+When using legacy registration method with S3 cache, the role now properly includes the `SecretKey` parameter:
+
+```yaml
+# S3 cache configuration for legacy registration
+cache_type: "s3"
+cache_s3_server_address: "192.168.5.3:9000"
+cache_s3_access_key: "your-access-key"
+cache_s3_secret_key: "your-secret-key"  # Now properly included!
+cache_s3_bucket_name: "gitlab-cache"
+cache_s3_insecure: true
+```
+
+### S3 Cache Parameters
+All S3 cache parameters are supported in legacy registration:
+
+- `cache_s3_server_address`: S3 server address
+- `cache_s3_access_key`: Access key
+- `cache_s3_secret_key`: Secret key (now properly included)
+- `cache_s3_bucket_name`: Bucket name
+- `cache_s3_bucket_location`: Bucket location (optional)
+- `cache_s3_insecure`: Use insecure connection
+- `cache_s3_authentication_type`: Authentication type (optional)
+- `cache_s3_server_side_encryption`: Server-side encryption (optional)
+- `cache_s3_server_side_encryption_key_id`: Encryption key ID (optional)
+
+### Troubleshooting S3 Cache Issues
+
+1. **SecretKey not found in config**
+   - Ensure `cache_s3_secret_key` is set in your variables
+   - Check that legacy registration completed successfully
+   - Verify the role version supports S3 secret key
+
+2. **S3 connectivity issues**
+   - Use `docker_use_host_network: true` for local S3 servers
+   - Check network connectivity from container
+   - Verify S3 server is accessible
+
+3. **Cache not working**
+   - Check S3 credentials are correct
+   - Verify bucket exists and is writable
+   - Check container has network access to S3
 
 ## Troubleshooting
 
@@ -496,3 +557,4 @@ For issues and questions:
 - Cache support (S3, GCS, Azure)
 - Security configurations
 - Monitoring and logging
+ 

@@ -85,8 +85,10 @@
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
+    # If `docker_use_host_network` is true, pass an empty list => use host network.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    {% if docker_use_host_network %}network_mode: host{% endif %}
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -103,8 +105,10 @@
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
+    # If `docker_use_host_network` is true, pass an empty list => use host network.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    {% if docker_use_host_network %}network_mode: host{% endif %}
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -129,6 +133,7 @@
       --executor docker
       --docker-image "{{ docker_image }}"
       {% if docker_privileged %}--docker-privileged {% endif %}
+      {% if docker_use_host_network %}--docker-network-mode host{% endif %}
 
       {% if docker_volumes %}{% for volume in docker_volumes %}--docker-volumes "{{ volume }}" {% endfor %}{% endif %}
       --docker-extra-hosts "{{ ansible_default_ipv4.address | default(fallback_ip_address) }}:{{ ansible_default_ipv4.address | default(fallback_ip_address) }}"
@@ -163,6 +168,7 @@
       {% if cache_path %}--cache-path "{{ cache_path }}"{% endif %}
       {% if cache_s3_server_address %}--cache-s3-server-address "{{ cache_s3_server_address }}"{% endif %}
       {% if cache_s3_access_key %}--cache-s3-access-key "{{ cache_s3_access_key }}"{% endif %}
+      {% if cache_s3_secret_key %}--cache-s3-secret-key "{{ cache_s3_secret_key }}"{% endif %}
       {% if cache_s3_bucket_name %}--cache-s3-bucket-name "{{ cache_s3_bucket_name }}"{% endif %}
       {% if cache_s3_bucket_location %}--cache-s3-bucket-location "{{ cache_s3_bucket_location }}"{% endif %}
       {% if cache_s3_insecure %}--cache-s3-insecure{% endif %}
@@ -285,7 +291,8 @@
     state: started
     restart_policy: always
     recreate: true
-    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    {% if docker_use_host_network %}network_mode: host{% endif %}
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"

@@ -147,8 +147,10 @@ docker_allowed_privileged_services: []
 # ------------------------------
 # Create network per build
 runner_network_per_build: false
-# Docker network mode
+# Docker network mode (bridge, host, none, or custom network name)
 docker_network_mode: "bridge"
+# Use host network for Docker containers (overrides docker_network_mode)
+docker_use_host_network: false
 
 # Optional custom network
 # Custom Docker network name for runner container (leave empty to use default bridge)

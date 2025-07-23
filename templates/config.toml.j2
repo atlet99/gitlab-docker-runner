@@ -89,7 +89,11 @@ concurrent = {{ gitlab_runner_concurrent }}
     volumes = {{ docker_volumes | to_nice_json }}
 
     {% if not runner_network_per_build -%}
+    {% if docker_use_host_network -%}
+    network_mode = "host"
+    {% else -%}
     network_mode = "{{ docker_network_mode }}"
+    {% endif -%}
     {% endif -%}
 
     {% if docker_timeout -%}
