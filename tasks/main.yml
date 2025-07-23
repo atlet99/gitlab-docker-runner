@@ -76,7 +76,24 @@
     - gitlab_runner_registration_method == "legacy"
     - config_file_check is defined
 
-- name: Start GitLab Runner container for modern registration
+- name: Start GitLab Runner container for modern registration (with host network)
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: always
+    recreate: true
+    network_mode: host
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: 
+    - gitlab_runner_registration_method == "modern"
+    - docker_use_host_network | bool
+
+- name: Start GitLab Runner container for modern registration (with custom network)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
@@ -85,18 +102,35 @@
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
-    # If `docker_use_host_network` is true, pass an empty list => use host network.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
-    {% if docker_use_host_network %}network_mode: host{% endif %}
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
     env:
       TZ: "{{ tz }}"
-  when: gitlab_runner_registration_method == "modern"
+  when: 
+    - gitlab_runner_registration_method == "modern"
+    - not docker_use_host_network | bool
 
-- name: Start GitLab Runner container for legacy registration (temporary)
+- name: Start GitLab Runner container for legacy registration (temporary, with host network)
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: "no"
+    recreate: true
+    network_mode: host
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - docker_use_host_network | bool
+
+- name: Start GitLab Runner container for legacy registration (temporary, with custom network)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
@@ -105,16 +139,16 @@
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
-    # If `docker_use_host_network` is true, pass an empty list => use host network.
     # Otherwise, pass a list with one dict containing the network name (or "bridge" by default).
-    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
-    {% if docker_use_host_network %}network_mode: host{% endif %}
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
     env:
       TZ: "{{ tz }}"
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - not docker_use_host_network | bool
 
 - name: Wait for GitLab Runner container to be ready
   wait_for:
@@ -284,15 +318,14 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
 
-- name: Start GitLab Runner container in normal mode (after registration)
+- name: Start GitLab Runner container in normal mode (after registration, with host network)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
     state: started
     restart_policy: always
     recreate: true
-    networks: "{{ [] if runner_network_per_build or docker_use_host_network else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
-    {% if docker_use_host_network %}network_mode: host{% endif %}
+    network_mode: host
     volumes:
       - "{{ runner_directory }}:/etc/gitlab-runner"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -303,6 +336,27 @@
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
+    - docker_use_host_network | bool
+
+- name: Start GitLab Runner container in normal mode (after registration, with custom network)
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
+    state: started
+    restart_policy: always
+    recreate: true
+    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - not docker_use_host_network | bool
 
 - name: Wait for GitLab Runner to be ready after registration
   wait_for:
