@@ -167,35 +167,35 @@
       --executor docker
       --docker-image "{{ docker_image }}"
       {% if docker_privileged %}--docker-privileged{% endif %}
-      {% if docker_volumes %}{% for volume in docker_volumes %}--docker-volumes "{{ volume }}"{% endfor %}{% endif %}
+      {% if docker_volumes %}{% for volume in docker_volumes %} --docker-volumes "{{ volume }}"{% endfor %}{% endif %}
       {% if docker_shm_size %}--docker-shm-size "{{ docker_shm_size }}"{% endif %}
       {% if docker_pull_policy %}--docker-pull-policy "{{ docker_pull_policy }}"{% endif %}
       {% if docker_helper_image %}--docker-helper-image "{{ docker_helper_image }}"{% endif %}
       {% if docker_isolation %}--docker-isolation "{{ docker_isolation }}"{% endif %}
       {% if docker_services_privileged %}--docker-services-privileged={{ docker_services_privileged | lower }}{% endif %}
-      {% if docker_allowed_privileged_images %}{% for image in docker_allowed_privileged_images %}--docker-allowed-privileged-images "{{ image }}"{% endfor %}{% endif %}
-      {% if docker_allowed_privileged_services %}{% for service in docker_allowed_privileged_services %}--docker-allowed-privileged-services "{{ service }}"{% endfor %}{% endif %}
+      {% if docker_allowed_privileged_images %}{% for image in docker_allowed_privileged_images %} --docker-allowed-privileged-images "{{ image }}"{% endfor %}{% endif %}
+      {% if docker_allowed_privileged_services %}{% for service in docker_allowed_privileged_services %} --docker-allowed-privileged-services "{{ service }}"{% endfor %}{% endif %}
       {% if docker_cpuset_cpus %}--docker-cpuset-cpus "{{ docker_cpuset_cpus }}"{% endif %}
       {% if docker_cpuset_mems %}--docker-cpuset-mems "{{ docker_cpuset_mems }}"{% endif %}
       {% if docker_cpus %}--docker-cpus "{{ docker_cpus }}"{% endif %}
-      {% if docker_cap_add %}{% for cap in docker_cap_add %}--docker-cap-add "{{ cap }}"{% endfor %}{% endif %}
-      {% if docker_cap_drop %}{% for cap in docker_cap_drop %}--docker-cap-drop "{{ cap }}"{% endfor %}{% endif %}
-      {% if docker_devices %}{% for device in docker_devices %}--docker-devices "{{ device }}"{% endfor %}{% endif %}
+      {% if docker_cap_add %}{% for cap in docker_cap_add %} --docker-cap-add "{{ cap }}"{% endfor %}{% endif %}
+      {% if docker_cap_drop %}{% for cap in docker_cap_drop %} --docker-cap-drop "{{ cap }}"{% endfor %}{% endif %}
+      {% if docker_devices %}{% for device in docker_devices %} --docker-devices "{{ device }}"{% endfor %}{% endif %}
       {% if docker_userns_mode %}--docker-userns-mode "{{ docker_userns_mode }}"{% endif %}
       {% if docker_disable_cache %}--docker-disable-cache{% endif %}
       {% if docker_wait_for_services_timeout %}--docker-wait-for-services-timeout "{{ docker_wait_for_services_timeout }}"{% endif %}
-      {% if docker_extra_hosts %}{% for host in docker_extra_hosts %}--docker-extra-hosts "{{ host }}"{% endfor %}{% endif %}
+      {% if docker_extra_hosts %}{% for host in docker_extra_hosts %} --docker-extra-hosts "{{ host }}"{% endfor %}{% endif %}
       {% if not docker_extra_hosts %}--docker-extra-hosts "{{ ansible_fqdn | default(ansible_hostname) }}:{{ ansible_default_ipv4.address | default(fallback_ip_address) }}"{% endif %}
-      {% if docker_dns %}{% for dns in docker_dns %}--docker-dns "{{ dns }}"{% endfor %}{% endif %}
-      {% if docker_dns_search %}{% for dns_search in docker_dns_search %}--docker-dns-search "{{ dns_search }}"{% endfor %}{% endif %}
-      {% if docker_security_opt %}{% for opt in docker_security_opt %}--docker-security-opt "{{ opt }}"{% endfor %}{% endif %}
+      {% if docker_dns %}{% for dns in docker_dns %} --docker-dns "{{ dns }}"{% endfor %}{% endif %}
+      {% if docker_dns_search %}{% for dns_search in docker_dns_search %} --docker-dns-search "{{ dns_search }}"{% endfor %}{% endif %}
+      {% if docker_security_opt %}{% for opt in docker_security_opt %} --docker-security-opt "{{ opt }}"{% endfor %}{% endif %}
       {% if docker_runtime %}--docker-runtime "{{ docker_runtime }}"{% endif %}
       {% if docker_hostname %}--docker-hostname "{{ docker_hostname }}"{% endif %}
       {% if docker_user %}--docker-user "{{ docker_user }}"{% endif %}
       {% if docker_use_host_network %}--docker-network-mode host{% endif %}
       {% if gitlab_runner_output_limit and gitlab_runner_output_limit > 0 %}--output-limit "{{ gitlab_runner_output_limit }}"{% endif %}
       {% if gitlab_runner_concurrent %}--limit "{{ gitlab_runner_concurrent }}"{% endif %}
-      {% if gitlab_runner_environment_flags %}{% for env_flag in gitlab_runner_environment_flags %}--env "{{ env_flag }}"{% endfor %}{% endif %}
+      {% if gitlab_runner_environment_flags %}{% for env_flag in gitlab_runner_environment_flags %} --env "{{ env_flag }}"{% endfor %}{% endif %}
       {% if cache_type %}--cache-type "{{ cache_type }}"{% endif %}
       {% if cache_shared %}--cache-shared{% endif %}
       {% if cache_path %}--cache-path "{{ cache_path }}"{% endif %}
