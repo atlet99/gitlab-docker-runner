@@ -174,7 +174,7 @@
       {% if docker_pull_policy %}--docker-pull-policy "{{ docker_pull_policy }}"{% endif %}
       {% if docker_helper_image %}--docker-helper-image "{{ docker_helper_image }}"{% endif %}
       {% if docker_isolation %}--docker-isolation "{{ docker_isolation }}"{% endif %}
-      {% if docker_services_privileged %}--docker-services-privileged{% endif %}
+
       {% if docker_allowed_privileged_images %}{% for image in docker_allowed_privileged_images %} --docker-allowed-privileged-images "{{ image }}"{% endfor %}{% endif %}
       {% if docker_allowed_privileged_services %}{% for service in docker_allowed_privileged_services %} --docker-allowed-privileged-services "{{ service }}"{% endfor %}{% endif %}
       {% if docker_cpuset_cpus %}--docker-cpuset-cpus "{{ docker_cpuset_cpus }}"{% endif %}
