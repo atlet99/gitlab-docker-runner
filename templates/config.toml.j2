@@ -47,7 +47,6 @@ concurrent = {{ gitlab_runner_concurrent }}
   url = "{{ gitlab_runner_url }}"
   token = "{{ gitlab_runner_token }}"
   executor = "docker"
-{% endif -%}
 
   {% if gitlab_runner_tags -%}
   tags = {{ gitlab_runner_tags | to_nice_json }}
@@ -178,8 +177,9 @@ concurrent = {{ gitlab_runner_concurrent }}
     {% if docker_user %}
     user = "{{ docker_user }}"
     {% endif -%}
+{% endif -%}
 
-{% if cache_type -%}
+{% if gitlab_runner_registration_method == "modern" and gitlab_runner_token and cache_type -%}
 [runners.cache]
   Type = "{{ cache_type }}"
   Path = "{{ cache_path }}"
