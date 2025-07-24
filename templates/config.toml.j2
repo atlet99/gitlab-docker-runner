@@ -41,14 +41,13 @@ concurrent = {{ gitlab_runner_concurrent }}
 {% endif -%}
 {% endif -%}
 
+{% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
 [[runners]]
   name = "{{ gitlab_runner_name }}"
   url = "{{ gitlab_runner_url }}"
-  {% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
   token = "{{ gitlab_runner_token }}"
-  {% endif -%}
-  {# For legacy registration, token will be added automatically after registration #}
   executor = "docker"
+{% endif -%}
 
   {% if gitlab_runner_tags -%}
   tags = {{ gitlab_runner_tags | to_nice_json }}
