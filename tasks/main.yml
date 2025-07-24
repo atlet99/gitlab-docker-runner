@@ -113,12 +113,12 @@
     - gitlab_runner_registration_method == "modern"
     - not docker_use_host_network | bool
 
-- name: Start GitLab Runner container for legacy registration (temporary, with host network)
+- name: Start GitLab Runner container for legacy registration (with host network)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
     state: started
-    restart_policy: "no"
+    restart_policy: always
     recreate: true
     network_mode: host
     volumes:
@@ -130,12 +130,12 @@
     - gitlab_runner_registration_method == "legacy"
     - docker_use_host_network | bool
 
-- name: Start GitLab Runner container for legacy registration (temporary, with custom network)
+- name: Start GitLab Runner container for legacy registration (with custom network)
   docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
     state: started
-    restart_policy: "no"
+    restart_policy: always
     recreate: true
     # Pass a list of dictionaries to `networks`.
     # If `runner_network_per_build` is true, pass an empty list => no networks.
@@ -154,6 +154,8 @@
   wait_for:
     timeout: 30
   when: gitlab_runner_registration_method == "legacy"
+
+
 
 - name: Construct legacy registration command
   ansible.builtin.set_fact:
@@ -297,65 +299,7 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
 
-- name: Stop temporary registration container
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    state: stopped
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
 
-- name: Remove temporary registration container
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    state: absent
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-
-- name: Start GitLab Runner container in normal mode (after registration, with host network)
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
-    state: started
-    restart_policy: always
-    recreate: true
-    network_mode: host
-    volumes:
-      - "{{ runner_directory }}:/etc/gitlab-runner"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    env:
-      TZ: "{{ tz }}"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - docker_use_host_network | bool
-
-- name: Start GitLab Runner container in normal mode (after registration, with custom network)
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
-    state: started
-    restart_policy: always
-    recreate: true
-    networks: "{{ [] if runner_network_per_build else ([{ 'name': docker_network }] if docker_network and docker_network != '' else [{ 'name': 'bridge' }]) }}"
-    volumes:
-      - "{{ runner_directory }}:/etc/gitlab-runner"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    env:
-      TZ: "{{ tz }}"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - not docker_use_host_network | bool
 
 - name: Wait for GitLab Runner to be ready after registration
   wait_for:
