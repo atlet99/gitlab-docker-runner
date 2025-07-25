@@ -37,9 +37,9 @@ runner_feature_flags: {}
 gitlab_runner_check_interval: 3
 # GitLab instance URL
 gitlab_runner_url: "https://gitlab.com/"
-# Authentication token for modern registration method
+# Authentication token for modern registration method (used when registration_token is not provided)
 gitlab_runner_token: ""
-# Registration token for legacy registration method
+# Registration token for legacy registration method (if provided, uses gitlab-runner register command)
 gitlab_runner_registration_token: ""
 # Runner name
 gitlab_runner_name: "my-runner"
@@ -75,10 +75,7 @@ gitlab_runner_unhealthy_requests_limit: 0
 gitlab_runner_unhealthy_interval: "0s"
 gitlab_runner_job_status_final_update_retry_limit: 0
 
-# Registration method selection
-# Set to 'legacy' to use registration_token with gitlab-runner register command
-# Set to 'modern' to use token directly in config.toml (default)
-gitlab_runner_registration_method: "modern"
+
 
 # ------------------------------
 # Container name and directories

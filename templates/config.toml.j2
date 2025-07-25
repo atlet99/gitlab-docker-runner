@@ -44,7 +44,7 @@ concurrent = {{ gitlab_runner_concurrent }}
 [[runners]]
   name = "{{ gitlab_runner_name }}"
   url = "{{ gitlab_runner_url }}"
-  {% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
+  {% if gitlab_runner_token and (gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == "") -%}
   token = "{{ gitlab_runner_token }}"
   {% endif -%}
   executor = "docker"

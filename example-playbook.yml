@@ -32,7 +32,7 @@
     - role: gitlab-docker-runner
       vars:
         gitlab_runner_name: "modern-runner"
-        gitlab_runner_registration_method: "modern"
+        
         gitlab_runner_token: "{{ vault_gitlab_modern_token }}"
         gitlab_runner_tags:
           - "docker"
@@ -48,7 +48,7 @@
     - role: gitlab-docker-runner
       vars:
         gitlab_runner_name: "legacy-runner"
-        gitlab_runner_registration_method: "legacy"
+        
         gitlab_runner_registration_token: "{{ vault_gitlab_legacy_token }}"
         gitlab_runner_tags:
           - "docker"

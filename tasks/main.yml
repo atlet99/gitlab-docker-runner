@@ -39,14 +39,17 @@
     status_code: [200, 401, 403]
     timeout: 30
   register: gitlab_url_check
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
   failed_when: false
 
 - name: Fail if GitLab URL is not accessible
   fail:
     msg: "GitLab URL {{ gitlab_runner_url }} is not accessible. Please check the URL and network connectivity."
   when:
-    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
     - gitlab_url_check.failed
 
 - name: Generate config.toml for modern registration method
@@ -54,7 +57,8 @@
     src: config.toml.j2
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
-  when: gitlab_runner_registration_method == "modern"
+  when: 
+    - gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == ""
 
 
 
@@ -72,7 +76,7 @@
     env:
       TZ: "{{ tz }}"
   when: 
-    - gitlab_runner_registration_method == "modern"
+    - gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == ""
     - docker_use_host_network | bool
 
 - name: Start GitLab Runner container for modern registration (with custom network)
@@ -92,7 +96,7 @@
     env:
       TZ: "{{ tz }}"
   when: 
-    - gitlab_runner_registration_method == "modern"
+    - gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == ""
     - not docker_use_host_network | bool
 
 - name: Start GitLab Runner container for legacy registration (with host network)
@@ -109,7 +113,8 @@
     env:
       TZ: "{{ tz }}"
   when: 
-    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
     - docker_use_host_network | bool
 
 - name: Start GitLab Runner container for legacy registration (with custom network)
@@ -129,149 +134,36 @@
     env:
       TZ: "{{ tz }}"
   when: 
-    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
     - not docker_use_host_network | bool
+
+- name: Generate complete config.toml template for legacy registration
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ runner_directory }}/config.toml"
+    mode: '0600'
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
 
 - name: Wait for GitLab Runner container to be ready
   wait_for:
     timeout: 30
-  when: gitlab_runner_registration_method == "legacy"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
 
-- name: Construct legacy registration command
+- name: Set simple legacy registration command
   ansible.builtin.set_fact:
     legacy_register_cmd: >
       register
       --non-interactive
-
+      --template-config "{{ runner_directory }}/config.toml"
       --url "{{ gitlab_runner_url }}"
       --registration-token "{{ gitlab_runner_registration_token }}"
       --name "{{ gitlab_runner_name }}"
-      {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
-      {% if gitlab_runner_maximum_timeout %}--maximum-timeout "{{ gitlab_runner_maximum_timeout }}"{% endif %}
-      {% if gitlab_runner_run_untagged is defined %}--run-untagged={{ gitlab_runner_run_untagged | lower }}{% endif %}
-      {% if gitlab_runner_locked is defined %}--locked={{ gitlab_runner_locked | lower }}{% endif %}
-      {% if gitlab_runner_access_level %}--access-level "{{ gitlab_runner_access_level }}"{% endif %}
-      {% if gitlab_runner_paused is defined %}--paused={{ gitlab_runner_paused | lower }}{% endif %}
-      {% if gitlab_runner_maintenance_note %}--maintenance-note "{{ gitlab_runner_maintenance_note }}"{% endif %}
-      {% if gitlab_runner_concurrent %}--limit "{{ gitlab_runner_concurrent }}"{% endif %}
-      {% if gitlab_runner_output_limit and gitlab_runner_output_limit > 0 %}--output-limit "{{ gitlab_runner_output_limit }}"{% endif %}
-      {% if gitlab_runner_request_concurrency %}--request-concurrency "{{ gitlab_runner_request_concurrency }}"{% endif %}
-      {% if gitlab_runner_unhealthy_requests_limit %}--unhealthy-requests-limit "{{ gitlab_runner_unhealthy_requests_limit }}"{% endif %}
-      {% if gitlab_runner_unhealthy_interval %}--unhealthy-interval "{{ gitlab_runner_unhealthy_interval }}"{% endif %}
-      {% if gitlab_runner_job_status_final_update_retry_limit %}--job-status-final-update-retry-limit "{{ gitlab_runner_job_status_final_update_retry_limit }}"{% endif %}
-      --executor docker
-      --docker-image "{{ docker_image }}"
-      {% if docker_privileged %}--docker-privileged{% endif %}
-      {% if docker_volumes %}{% for volume in docker_volumes %} --docker-volumes "{{ volume }}"{% endfor %}{% endif %}
-      {% if docker_shm_size %}--docker-shm-size "{{ docker_shm_size }}"{% endif %}
-      {% if docker_pull_policy %}--docker-pull-policy "{{ docker_pull_policy }}"{% endif %}
-      {% if docker_helper_image %}--docker-helper-image "{{ docker_helper_image }}"{% endif %}
-      {% if docker_isolation %}--docker-isolation "{{ docker_isolation }}"{% endif %}
-
-      {% if docker_allowed_privileged_images %}{% for image in docker_allowed_privileged_images %} --docker-allowed-privileged-images "{{ image }}"{% endfor %}{% endif %}
-      {% if docker_allowed_privileged_services %}{% for service in docker_allowed_privileged_services %} --docker-allowed-privileged-services "{{ service }}"{% endfor %}{% endif %}
-      {% if docker_cpuset_cpus %}--docker-cpuset-cpus "{{ docker_cpuset_cpus }}"{% endif %}
-      {% if docker_cpuset_mems %}--docker-cpuset-mems "{{ docker_cpuset_mems }}"{% endif %}
-      {% if docker_cpus %}--docker-cpus "{{ docker_cpus }}"{% endif %}
-      {% if docker_cap_add %}{% for cap in docker_cap_add %} --docker-cap-add "{{ cap }}"{% endfor %}{% endif %}
-      {% if docker_cap_drop %}{% for cap in docker_cap_drop %} --docker-cap-drop "{{ cap }}"{% endfor %}{% endif %}
-      {% if docker_devices %}{% for device in docker_devices %} --docker-devices "{{ device }}"{% endfor %}{% endif %}
-      {% if docker_userns_mode %}--docker-userns "{{ docker_userns_mode }}"{% endif %}
-      {% if docker_disable_cache %}--docker-disable-cache{% endif %}
-      {% if docker_wait_for_services_timeout %}--docker-wait-for-services-timeout "{{ docker_wait_for_services_timeout }}"{% endif %}
-      {% if docker_extra_hosts %}{% for host in docker_extra_hosts %} --docker-extra-hosts "{{ host }}"{% endfor %}{% endif %}
-      {% if not docker_extra_hosts %}--docker-extra-hosts "{{ ansible_default_ipv4.address | default(fallback_ip_address) }}:{{ ansible_default_ipv4.address | default(fallback_ip_address) }}"{% endif %}
-      {% if docker_dns %}{% for dns in docker_dns %} --docker-dns "{{ dns }}"{% endfor %}{% endif %}
-      {% if docker_dns_search %}{% for dns_search in docker_dns_search %} --docker-dns-search "{{ dns_search }}"{% endfor %}{% endif %}
-      {% if docker_security_opt %}{% for opt in docker_security_opt %} --docker-security-opt "{{ opt }}"{% endfor %}{% endif %}
-      {% if docker_runtime %}--docker-runtime "{{ docker_runtime }}"{% endif %}
-      {% if docker_hostname %}--docker-hostname "{{ docker_hostname }}"{% endif %}
-      {% if docker_user %}--docker-user "{{ docker_user }}"{% endif %}
-      {% if docker_allowed_users %}{% for user in docker_allowed_users %} --docker-allowed-users "{{ user }}"{% endfor %}{% endif %}
-      {% if docker_group_add %}{% for group in docker_group_add %} --docker-group-add "{{ group }}"{% endfor %}{% endif %}
-      {% if docker_memory %}--docker-memory "{{ docker_memory }}"{% endif %}
-      {% if docker_memory_swap %}--docker-memory-swap "{{ docker_memory_swap }}"{% endif %}
-      {% if docker_memory_reservation %}--docker-memory-reservation "{{ docker_memory_reservation }}"{% endif %}
-      {% if docker_cpu_shares %}--docker-cpu-shares "{{ docker_cpu_shares }}"{% endif %}
-      {% if docker_cgroup_parent %}--docker-cgroup-parent "{{ docker_cgroup_parent }}"{% endif %}
-      {% if docker_oom_kill_disable %}--docker-oom-kill-disable{% endif %}
-      {% if docker_oom_score_adjust %}--docker-oom-score-adjust "{{ docker_oom_score_adjust }}"{% endif %}
-      {% if docker_services_security_opt %}{% for opt in docker_services_security_opt %} --docker-services-security-opt "{{ opt }}"{% endfor %}{% endif %}
-      {% if docker_device_cgroup_rules %}{% for rule in docker_device_cgroup_rules %} --docker-device-cgroup-rules "{{ rule }}"{% endfor %}{% endif %}
-      {% if docker_gpus %}--docker-gpus "{{ docker_gpus }}"{% endif %}
-      {% if docker_services_devices %}--docker-services_devices "{{ docker_services_devices }}"{% endif %}
-      {% if docker_volume_driver %}--docker-volume-driver "{{ docker_volume_driver }}"{% endif %}
-      {% if docker_volume_driver_ops %}--docker-volume-driver-ops "{{ docker_volume_driver_ops }}"{% endif %}
-      {% if docker_cache_dir %}--docker-cache-dir "{{ docker_cache_dir }}"{% endif %}
-      {% if docker_volumes_from %}{% for volume_from in docker_volumes_from %} --docker-volumes-from "{{ volume_from }}"{% endfor %}{% endif %}
-      {% if docker_ipcmode %}--docker-ipcmode "{{ docker_ipcmode }}"{% endif %}
-      {% if docker_mac_address %}--docker-mac-address "{{ docker_mac_address }}"{% endif %}
-      {% if docker_links %}{% for link in docker_links %} --docker-links "{{ link }}"{% endfor %}{% endif %}
-      {% if docker_services_limit %}--docker-services-limit "{{ docker_services_limit }}"{% endif %}
-      {% if docker_service_memory %}--docker-service-memory "{{ docker_service_memory }}"{% endif %}
-      {% if docker_service_memory_swap %}--docker-service-memory-swap "{{ docker_service_memory_swap }}"{% endif %}
-      {% if docker_service_memory_reservation %}--docker-service-memory-reservation "{{ docker_service_memory_reservation }}"{% endif %}
-      {% if docker_service_cgroup_parent %}--docker-service-cgroup-parent "{{ docker_service_cgroup_parent }}"{% endif %}
-      {% if docker_service_cpuset_cpus %}--docker-service-cpuset-cpus "{{ docker_service_cpuset_cpus }}"{% endif %}
-      {% if docker_service_cpu_shares %}--docker-service-cpu-shares "{{ docker_service_cpu_shares }}"{% endif %}
-      {% if docker_service_cpus %}--docker-service-cpus "{{ docker_service_cpus }}"{% endif %}
-      {% if docker_service_gpus %}--docker-service_gpus "{{ docker_service_gpus }}"{% endif %}
-      {% if docker_allowed_images %}{% for image in docker_allowed_images %} --docker-allowed-images "{{ image }}"{% endfor %}{% endif %}
-      {% if docker_allowed_pull_policies %}{% for policy in docker_allowed_pull_policies %} --docker-allowed-pull-policies "{{ policy }}"{% endfor %}{% endif %}
-      {% if docker_allowed_services %}{% for service in docker_allowed_services %} --docker-allowed-services "{{ service }}"{% endfor %}{% endif %}
-      {% if docker_tmpfs %}--docker-tmpfs "{{ docker_tmpfs }}"{% endif %}
-      {% if docker_services_tmpfs %}--docker-services-tmpfs "{{ docker_services_tmpfs }}"{% endif %}
-      {% if docker_sysctls %}--docker-sysctls "{{ docker_sysctls }}"{% endif %}
-      {% if docker_helper_image_flavor %}--docker-helper-image-flavor "{{ docker_helper_image_flavor }}"{% endif %}
-      {% if docker_helper_image_autoset_arch_and_os %}--docker-helper-image-autoset-arch-and-os{% endif %}
-      {% if docker_container_labels %}--docker-container-labels "{{ docker_container_labels }}"{% endif %}
-      {% if docker_enable_ipv6 %}--docker-enable-ipv6{% endif %}
-      {% if docker_ulimit %}--docker-ulimit "{{ docker_ulimit }}"{% endif %}
-      {% if docker_network_mtu %}--docker-network-mtu "{{ docker_network_mtu }}"{% endif %}
-      {% if docker_use_host_network %}--docker-network-mode host{% endif %}
-      {% if docker_services and docker_services|length > 0 %}{% for service in docker_services %} --docker-service "{{ service.name }}{% if service.alias %}:{{ service.alias }}{% endif %}"{% endfor %}{% endif %}
-
-      {% if gitlab_runner_environment_flags %}{% for env_flag in gitlab_runner_environment_flags %} --env "{{ env_flag }}"{% endfor %}{% endif %}
-      {% if gitlab_runner_pre_get_sources_script %}--pre-get-sources-script "{{ gitlab_runner_pre_get_sources_script }}"{% endif %}
-      {% if gitlab_runner_post_get_sources_script %}--post-get-sources-script "{{ gitlab_runner_post_get_sources_script }}"{% endif %}
-      {% if gitlab_runner_pre_build_script %}--pre-build-script "{{ gitlab_runner_pre_build_script }}"{% endif %}
-      {% if gitlab_runner_post_build_script %}--post-build-script "{{ gitlab_runner_post_build_script }}"{% endif %}
-      {% if gitlab_runner_debug_trace_disabled is defined %}--debug-trace-disabled={{ gitlab_runner_debug_trace_disabled | lower }}{% endif %}
-      {% if gitlab_runner_safe_directory_checkout is defined %}--safe-directory-checkout={{ gitlab_runner_safe_directory_checkout | lower }}{% endif %}
-      {% if gitlab_runner_clean_git_config is defined %}--clean-git-config={{ gitlab_runner_clean_git_config | lower }}{% endif %}
-      {% if gitlab_runner_shell %}--shell "{{ gitlab_runner_shell }}"{% endif %}
-      {% if gitlab_runner_custom_build_dir_enabled is defined %}--custom_build_dir-enabled={{ gitlab_runner_custom_build_dir_enabled | lower }}{% endif %}
-      {% if gitlab_runner_clone_url %}--clone-url "{{ gitlab_runner_clone_url }}"{% endif %}
-
-      {% if cache_type %}--cache-type "{{ cache_type }}"{% endif %}
-      {% if cache_shared %}--cache-shared{% endif %}
-      {% if cache_path %}--cache-path "{{ cache_path }}"{% endif %}
-      {% if cache_max_uploaded_archive_size %}--cache-max_uploaded_archive_size "{{ cache_max_uploaded_archive_size }}"{% endif %}
-      {% if cache_s3_server_address %}--cache-s3-server-address "{{ cache_s3_server_address }}"{% endif %}
-      {% if cache_s3_access_key %}--cache-s3-access-key "{{ cache_s3_access_key }}"{% endif %}
-      {% if cache_s3_secret_key %}--cache-s3-secret-key "{{ cache_s3_secret_key }}"{% endif %}
-      {% if cache_s3_bucket_name %}--cache-s3-bucket-name "{{ cache_s3_bucket_name }}"{% endif %}
-      {% if cache_s3_bucket_location %}--cache-s3-bucket-location "{{ cache_s3_bucket_location }}"{% endif %}
-      {% if cache_s3_insecure %}--cache-s3-insecure{% endif %}
-      {% if cache_s3_authentication_type %}--cache-s3-authentication-type "{{ cache_s3_authentication_type }}"{% endif %}
-      {% if cache_s3_server_side_encryption %}--cache-s3-server-side-encryption "{{ cache_s3_server_side_encryption }}"{% endif %}
-      {% if cache_s3_server_side_encryption_key_id %}--cache-s3-server-side-encryption-key-id "{{ cache_s3_server_side_encryption_key_id }}"{% endif %}
-      {% if cache_s3_dual_stack is defined %}--cache-s3-dual-stack={{ cache_s3_dual_stack | lower }}{% endif %}
-      {% if cache_s3_accelerate %}--cache-s3-accelerate{% endif %}
-      {% if cache_s3_path_style is defined %}--cache-s3-path-style={{ cache_s3_path_style | lower }}{% endif %}
-      {% if cache_s3_role_arn %}--cache-s3-role-arn "{{ cache_s3_role_arn }}"{% endif %}
-      {% if cache_s3_upload_role_arn %}--cache-s3-upload-role-arn "{{ cache_s3_upload_role_arn }}"{% endif %}
-      {% if cache_gcs_access_id %}--cache-gcs-access-id "{{ cache_gcs_access_id }}"{% endif %}
-      {% if cache_gcs_private_key %}--cache-gcs-private-key "{{ cache_gcs_private_key }}"{% endif %}
-      {% if cache_gcs_credentials_file %}--cache-gcs-credentials-file "{{ cache_gcs_credentials_file }}"{% endif %}
-      {% if cache_gcs_bucket_name %}--cache-gcs-bucket-name "{{ cache_gcs_bucket_name }}"{% endif %}
-      {% if cache_azure_account_name %}--cache-azure-account-name "{{ cache_azure_account_name }}"{% endif %}
-      {% if cache_azure_account_key %}--cache-azure-account-key "{{ cache_azure_account_key }}"{% endif %}
-      {% if cache_azure_container_name %}--cache-azure-container-name "{{ cache_azure_container_name }}"{% endif %}
-      {% if cache_azure_storage_domain %}--cache-azure-storage-domain "{{ cache_azure_storage_domain }}"{% endif %}
-
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
 
@@ -279,7 +171,6 @@
   debug:
     msg: "Registration command: gitlab-runner {{ legacy_register_cmd }}"
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
@@ -288,7 +179,6 @@
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
   register: runner_exists_before_registration
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
@@ -310,7 +200,6 @@
   command: >
     docker exec {{ gitlab_runner_container_name }} gitlab-runner {{ legacy_register_cmd }}
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
@@ -331,7 +220,6 @@
   debug:
     msg: "Runner '{{ gitlab_runner_name }}' exists: {{ runner_exists_check.stdout != 'not_found' }}"
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - runner_exists_check is defined
@@ -340,7 +228,6 @@
   wait_for:
     timeout: 30
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -349,7 +236,6 @@
   shell: docker logs {{ gitlab_runner_container_name }} 2>&1 | tail -20
   register: registration_logs
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -358,7 +244,6 @@
   debug:
     var: registration_logs.stdout_lines
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - registration_logs is defined
@@ -367,7 +252,6 @@
   debug:
     var: legacy_registration_result.stdout_lines
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -376,7 +260,6 @@
   debug:
     var: legacy_registration_result.stderr_lines
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -387,7 +270,6 @@
   wait_for:
     timeout: 60
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -396,126 +278,15 @@
   wait_for:
     timeout: 30
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
-
-- name: Update concurrent setting in config.toml
-  ansible.builtin.replace:
-    path: "{{ runner_directory }}/config.toml"
-    regexp: '^concurrent = \d+'
-    replace: 'concurrent = {{ gitlab_runner_concurrent }}'
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-
-- name: Update check_interval setting in config.toml
-  ansible.builtin.replace:
-    path: "{{ runner_directory }}/config.toml"
-    regexp: '^check_interval = \d+'
-    replace: 'check_interval = {{ gitlab_runner_check_interval }}'
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-
-- name: Add log_level setting to config.toml if not present
-  ansible.builtin.blockinfile:
-    path: "{{ runner_directory }}/config.toml"
-    insertafter: '^check_interval ='
-    block: |
-      log_level = "{{ gitlab_runner_log_level }}"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - log_level"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - gitlab_runner_log_level is defined
-
-- name: Add log_format setting to config.toml if not present
-  ansible.builtin.blockinfile:
-    path: "{{ runner_directory }}/config.toml"
-    insertafter: '^log_level ='
-    block: |
-      log_format = "{{ gitlab_runner_log_format }}"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - log_format"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - gitlab_runner_log_format is defined
-
-- name: Add shutdown_timeout setting to config.toml if not present
-  ansible.builtin.blockinfile:
-    path: "{{ runner_directory }}/config.toml"
-    insertafter: '^log_format ='
-    block: |
-      shutdown_timeout = {{ gitlab_runner_shutdown_timeout }}
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - shutdown_timeout"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - gitlab_runner_shutdown_timeout is defined
-
-- name: Add connection_max_age setting to config.toml if not present
-  ansible.builtin.blockinfile:
-    path: "{{ runner_directory }}/config.toml"
-    insertafter: '^shutdown_timeout ='
-    block: |
-      connection_max_age = "{{ gitlab_runner_connection_max_age }}"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - connection_max_age"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - gitlab_runner_connection_max_age is defined
-
-- name: Add session server configuration to config.toml if not present
-  ansible.builtin.blockinfile:
-    path: "{{ runner_directory }}/config.toml"
-    insertafter: '^connection_max_age ='
-    block: |
-      [session_server]
-        listen_address = "{{ session_server_listen_address }}"
-        {% if session_server_advertise_address %}advertise_address = "{{ session_server_advertise_address }}"{% endif %}
-        {% if session_server_session_timeout %}session_timeout = {{ session_server_session_timeout }}{% endif %}
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - session_server"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - session_server_listen_address is defined
-
-- name: Restart GitLab Runner container to apply global settings
-  docker_container:
-    name: "{{ gitlab_runner_container_name }}"
-    state: started
-    restart_policy: always
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-
-
-
 
 
 - name: Display successful registration message
   debug:
     msg: "GitLab Runner successfully registered"
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -533,7 +304,6 @@
       
       You can run the diagnostic script: ./scripts/diagnose-legacy-registration.sh
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -545,18 +315,15 @@
       This could be due to:
       1. Missing registration token
       2. Registration token is empty
-      3. Registration method is not set to 'legacy'
       
       Please check your variables and try again.
   when: 
-    - gitlab_runner_registration_method == "legacy"
-    - (gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == "")
+    - gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == ""
 
 - name: Verify GitLab Runner configuration
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner verify
   register: runner_verify
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -566,7 +333,6 @@
   debug:
     var: runner_verify.stdout_lines
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -576,7 +342,6 @@
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list
   register: runner_status
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
@@ -586,8 +351,30 @@
   debug:
     var: runner_status.stdout_lines
   when: 
-    - gitlab_runner_registration_method == "legacy"
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - runner_status is defined
+
+- name: Display final configuration file content
+  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml
+  register: final_config_content
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+  failed_when: false
+
+- name: Show final configuration
+  debug:
+    msg: |
+      ========================================
+      FINAL GITLAB RUNNER CONFIGURATION
+      ========================================
+      {{ final_config_content.stdout }}
+      ========================================
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - final_config_content is defined

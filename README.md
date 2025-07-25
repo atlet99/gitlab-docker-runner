@@ -54,7 +54,6 @@ ansible-galaxy install geerlingguy.docker
 gitlab_runner_url: "https://gitlab.com/"
 gitlab_runner_token: "your-authentication-token"
 gitlab_runner_name: "my-runner"
-gitlab_runner_registration_method: "modern"
 ```
 
 #### Legacy Registration Method
@@ -63,23 +62,22 @@ gitlab_runner_registration_method: "modern"
 gitlab_runner_url: "https://gitlab.com/"
 gitlab_runner_registration_token: "your-registration-token"
 gitlab_runner_name: "my-runner"
-gitlab_runner_registration_method: "legacy"
 ```
 
 ### Registration Method Selection
 
-The role supports two registration methods:
+The role automatically selects the registration method based on the provided variables:
 
-1. **Modern Method** (`gitlab_runner_registration_method: "modern"` - default):
-   - Uses authentication token directly in `config.toml`
-   - Requires `gitlab_runner_token` variable
-   - More secure and recommended for new deployments
+1. **Legacy Method** (triggered when `gitlab_runner_registration_token` is provided):
+   - Uses `gitlab-runner register` command with `--template-config`
+   - All settings are applied via the comprehensive `config.toml.j2` template
+   - Suitable for initial runner setup
+   - **NEW**: Zero "crutches" - no post-registration modifications needed
 
-2. **Legacy Method** (`gitlab_runner_registration_method: "legacy"`):
-   - Uses registration token with `gitlab-runner register` command
-   - Requires `gitlab_runner_registration_token` variable
-   - Compatible with older GitLab Runner versions and workflows
-   - **NEW**: Uses `--template-config` for immediate application of all settings
+2. **Modern Method** (triggered when `gitlab_runner_registration_token` is not provided):
+   - Uses `gitlab_runner_token` directly in `config.toml`
+   - All settings are applied via the comprehensive `config.toml.j2` template
+   - Suitable for existing runners or when you have the authentication token
 
 ### Optional Variables
 
@@ -302,7 +300,6 @@ cache_azure_storage_domain: ""
         gitlab_runner_url: "https://gitlab.company.com/"
         gitlab_runner_token: "{{ vault_gitlab_token }}"
         gitlab_runner_name: "production-runner"
-        gitlab_runner_registration_method: "modern"
         gitlab_runner_tags:
           - "docker"
           - "production"
@@ -318,7 +315,6 @@ cache_azure_storage_domain: ""
         gitlab_runner_url: "https://gitlab.company.com/"
         gitlab_runner_registration_token: "{{ vault_gitlab_registration_token }}"
         gitlab_runner_name: "legacy-runner"
-        gitlab_runner_registration_method: "legacy"
         gitlab_runner_tags:
           - "docker"
           - "legacy"
@@ -805,7 +801,7 @@ For issues and questions:
 
 ### Version 1.1.0
 - Added support for legacy registration method using `registration_token`
-- Added `gitlab_runner_registration_method` variable to choose between modern and legacy methods
+- **BREAKING**: Removed `gitlab_runner_registration_method` variable - method is now automatically selected based on token presence
 - Enhanced documentation for both registration approaches
 - Improved error handling for registration process
 - Added diagnostic script for troubleshooting

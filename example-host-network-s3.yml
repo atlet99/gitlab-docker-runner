@@ -7,7 +7,7 @@
     gitlab_runner_name: "host-network-runner"
     gitlab_runner_url: "https://git.testingmode.com/"
     gitlab_runner_registration_token: "your-registration-token"
-    gitlab_runner_registration_method: "legacy"
+    
     
     # Use host network for better connectivity
     docker_use_host_network: true
