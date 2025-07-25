@@ -56,9 +56,9 @@
     mode: '0600'
   when: gitlab_runner_registration_method == "modern"
 
-- name: Generate complete config.toml for legacy registration method
+- name: Generate minimal config.toml template for legacy registration method
   ansible.builtin.template:
-    src: config.toml.j2
+    src: config.toml.legacy.j2
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
   when: gitlab_runner_registration_method == "legacy"
