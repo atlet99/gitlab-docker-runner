@@ -63,6 +63,12 @@
     mode: '0600'
   when: gitlab_runner_registration_method == "legacy"
 
+- name: Remove existing config.toml before legacy registration
+  file:
+    path: "{{ runner_directory }}/config.toml"
+    state: absent
+  when: gitlab_runner_registration_method == "legacy"
+
 - name: Verify config file was created for legacy registration
   stat:
     path: "{{ runner_directory }}/config.toml"
@@ -221,6 +227,28 @@
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
+
+- name: Check if runner already exists before registration
+  shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
+  register: runner_exists_before_registration
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_register_cmd is defined
+  failed_when: false
+
+- name: Unregister existing runner if exists
+  command: >
+    docker exec {{ gitlab_runner_container_name }} gitlab-runner unregister --name "{{ gitlab_runner_name }}"
+  when: 
+    - gitlab_runner_registration_method == "legacy"
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_register_cmd is defined
+    - runner_exists_before_registration.stdout != "not_found"
+  register: unregister_result
+  failed_when: false
 
 - name: Register runner using legacy method
   command: >
