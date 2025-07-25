@@ -232,7 +232,7 @@
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
     - container_status is defined
-    - "Up" in container_status.stdout
+    - "'Up' in container_status.stdout"
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
 
