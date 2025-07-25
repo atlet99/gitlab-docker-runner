@@ -278,12 +278,6 @@
     - extracted_runner_id is defined
     - extracted_runner_token is defined
     - extracted_token_obtained_at is defined
-  when: 
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - legacy_registration_result.rc == 0
-    - backup_config is defined
 
 - name: Debug extracted data from backup
   debug:
