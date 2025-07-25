@@ -217,26 +217,34 @@
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
 
-- name: Read generated config.toml to extract dynamic data
-  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml
-  register: generated_config
+- name: Backup generated config.toml after registration
+  shell: docker exec {{ gitlab_runner_container_name }} cp /etc/gitlab-runner/config.toml /etc/gitlab-runner/config.toml.backup
   when: 
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
 
-- name: Extract runner ID and token from generated config
-  ansible.builtin.set_fact:
-    runner_id: "{{ generated_config.stdout | regex_search('id = ([0-9]+)') | regex_replace('.*id = ([0-9]+).*', '\\1') }}"
-    runner_token: "{{ generated_config.stdout | regex_search('token = \"([a-zA-Z0-9_-]+)\"') | regex_replace('.*token = \"([a-zA-Z0-9_-]+)\".*', '\\1') }}"
-    token_obtained_at: "{{ generated_config.stdout | regex_search('token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)') | regex_replace('.*token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z).*', '\\1') }}"
+- name: Read backup config.toml to extract dynamic data
+  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml.backup
+  register: backup_config
   when: 
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
-    - generated_config is defined
+
+- name: Extract runner ID and token from backup config
+  ansible.builtin.set_fact:
+    runner_id: "{{ backup_config.stdout | regex_search('id = ([0-9]+)') | regex_replace('.*id = ([0-9]+).*', '\\1') }}"
+    runner_token: "{{ backup_config.stdout | regex_search('token = \"([a-zA-Z0-9_-]+)\"') | regex_replace('.*token = \"([a-zA-Z0-9_-]+)\".*', '\\1') }}"
+    token_obtained_at: "{{ backup_config.stdout | regex_search('token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)') | regex_replace('.*token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z).*', '\\1') }}"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
 
 
 
@@ -250,6 +258,7 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
+    - backup_config is defined
     - runner_id is defined
     - runner_token is defined
 
@@ -270,6 +279,18 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
+    - backup_config is defined
+    - runner_id is defined
+    - runner_token is defined
+
+- name: Remove backup config.toml
+  shell: docker exec {{ gitlab_runner_container_name }} rm -f /etc/gitlab-runner/config.toml.backup
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
     - runner_id is defined
     - runner_token is defined
 
