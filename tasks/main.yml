@@ -472,34 +472,6 @@
     - legacy_registration_result is defined
     - runner_verify is defined
 
-
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-  failed_when: false
-
-- name: Show configuration file content
-  debug:
-    var: config_content.stdout_lines
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - config_content is defined
-
-- name: Display authentication token status
-  debug:
-    msg: "Authentication token status: {{ token_check.stdout }}"
-  when: 
-    - gitlab_runner_registration_method == "legacy"
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - token_check is defined
-
 - name: Show runner status after legacy registration
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list
   register: runner_status
