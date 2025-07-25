@@ -47,6 +47,18 @@ session_timeout = {{ session_server_session_timeout }}
   {% if gitlab_runner_token and (gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == "") -%}
   token = "{{ gitlab_runner_token }}"
   {% endif -%}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and runner_id is defined and runner_id -%}
+  id = {{ runner_id }}
+  {% endif -%}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and runner_token is defined and runner_token -%}
+  token = "{{ runner_token }}"
+  {% endif -%}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and token_obtained_at is defined and token_obtained_at -%}
+  token_obtained_at = {{ token_obtained_at }}
+  {% endif -%}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token -%}
+  token_expires_at = 0001-01-01T00:00:00Z
+  {% endif -%}
   executor = "docker"
 
   {% if gitlab_runner_tags -%}
