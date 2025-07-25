@@ -216,9 +216,9 @@
     - legacy_register_cmd is defined
 
 - name: Check container status before registration
-  shell: docker ps --filter "name={{ gitlab_runner_container_name }}" --format "{{.Status}}"
+  shell: docker ps --filter "name={{ gitlab_runner_container_name }}" --filter "status=running" --format "table {{.Names}}\t{{.Status}}"
   register: container_status
-  when: 
+  when:
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
@@ -232,7 +232,7 @@
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
     - container_status is defined
-    - "'Up' in container_status.stdout"
+    - "container_status.stdout_lines | length > 0"
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
 
@@ -353,8 +353,6 @@
     - extracted_runner_id is defined
     - extracted_runner_token is defined
     - extracted_token_obtained_at is defined
-
-
 
 - name: Check if runner is already registered
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
