@@ -341,17 +341,7 @@
     - extracted_runner_token is defined
     - extracted_token_obtained_at is defined
 
-- name: Remove backup config.toml
-  shell: docker exec {{ gitlab_runner_container_name }} rm -f /etc/gitlab-runner/config.toml.backup
-  when: 
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_registration_result is defined
-    - legacy_registration_result.rc == 0
-    - backup_config is defined
-    - extracted_runner_id is defined
-    - extracted_runner_token is defined
-    - extracted_token_obtained_at is defined
+
 
 - name: Check if runner is already registered
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
