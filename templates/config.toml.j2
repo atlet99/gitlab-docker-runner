@@ -150,11 +150,16 @@ session_timeout = {{ session_server_session_timeout }}
   {% endif -%}
 
   [runners.docker]
+    tls_verify = false
     image = "{{ docker_image }}"
     privileged = {{ docker_privileged | lower }}
+    disable_entrypoint_overwrite = false
     oom_kill_disable = {{ docker_oom_kill_disable | lower }}
-    shm_size = {{ docker_shm_size }}
+    disable_cache = false
     volumes = {{ docker_volumes | to_nice_json }}
+    {% if docker_shm_size %}
+    shm_size = {{ docker_shm_size }}
+    {% endif -%}
 
     {% if not runner_network_per_build -%}
     {% if docker_use_host_network -%}
@@ -174,7 +179,7 @@ session_timeout = {{ session_server_session_timeout }}
     docker_retry = {{ docker_retry }}
     {% endif -%}
     {% if docker_pull_policy -%}
-    pull_policy = "{{ docker_pull_policy }}"
+    pull_policy = ["{{ docker_pull_policy }}"]
     {% endif -%}
     {% if docker_helper_image -%}
     helper_image = "{{ docker_helper_image }}"
@@ -524,4 +529,6 @@ session_timeout = {{ session_server_session_timeout }}
       StorageDomain = "{{ cache_azure_storage_domain }}"
       {% endif -%}
     {% endif -%}
+    [runners.cache.gcs]
+    [runners.cache.azure]
   {% endif -%}
