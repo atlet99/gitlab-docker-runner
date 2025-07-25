@@ -56,17 +56,11 @@
     mode: '0600'
   when: gitlab_runner_registration_method == "modern"
 
-- name: Generate minimal config.toml for legacy registration method
+- name: Generate complete config.toml for legacy registration method
   ansible.builtin.template:
     src: config.toml.j2
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
-  when: gitlab_runner_registration_method == "legacy"
-
-- name: Remove existing config.toml before legacy registration
-  file:
-    path: "{{ runner_directory }}/config.toml"
-    state: absent
   when: gitlab_runner_registration_method == "legacy"
 
 - name: Verify config file was created for legacy registration
@@ -166,10 +160,18 @@
     legacy_register_cmd: >
       register
       --non-interactive
+      --template-config "{{ runner_directory }}/config.toml"
       --url "{{ gitlab_runner_url }}"
       --registration-token "{{ gitlab_runner_registration_token }}"
       --name "{{ gitlab_runner_name }}"
       {% if gitlab_runner_tags %}--tag-list "{{ gitlab_runner_tags | join(',') }}"{% endif %}
+      {% if gitlab_runner_concurrent %}--request-concurrency "{{ gitlab_runner_concurrent }}"{% endif %}
+      {% if gitlab_runner_maximum_timeout %}--maximum-timeout "{{ gitlab_runner_maximum_timeout }}"{% endif %}
+      {% if gitlab_runner_run_untagged is defined %}--run-untagged={{ gitlab_runner_run_untagged | lower }}{% endif %}
+      {% if gitlab_runner_locked is defined %}--locked={{ gitlab_runner_locked | lower }}{% endif %}
+      {% if gitlab_runner_access_level %}--access-level "{{ gitlab_runner_access_level }}"{% endif %}
+      {% if gitlab_runner_paused is defined %}--paused={{ gitlab_runner_paused | lower }}{% endif %}
+      {% if gitlab_runner_maintenance_note %}--maintenance-note "{{ gitlab_runner_maintenance_note }}"{% endif %}
       --executor docker
       --docker-image "{{ docker_image }}"
       {% if docker_privileged %}--docker-privileged{% endif %}
@@ -187,7 +189,7 @@
       {% if docker_cap_add %}{% for cap in docker_cap_add %} --docker-cap-add "{{ cap }}"{% endfor %}{% endif %}
       {% if docker_cap_drop %}{% for cap in docker_cap_drop %} --docker-cap-drop "{{ cap }}"{% endfor %}{% endif %}
       {% if docker_devices %}{% for device in docker_devices %} --docker-devices "{{ device }}"{% endfor %}{% endif %}
-      {% if docker_userns_mode %}--docker-userns-mode "{{ docker_userns_mode }}"{% endif %}
+      {% if docker_userns_mode %}--docker-userns "{{ docker_userns_mode }}"{% endif %}
       {% if docker_disable_cache %}--docker-disable-cache{% endif %}
       {% if docker_wait_for_services_timeout %}--docker-wait-for-services-timeout "{{ docker_wait_for_services_timeout }}"{% endif %}
       {% if docker_extra_hosts %}{% for host in docker_extra_hosts %} --docker-extra-hosts "{{ host }}"{% endfor %}{% endif %}
@@ -198,13 +200,68 @@
       {% if docker_runtime %}--docker-runtime "{{ docker_runtime }}"{% endif %}
       {% if docker_hostname %}--docker-hostname "{{ docker_hostname }}"{% endif %}
       {% if docker_user %}--docker-user "{{ docker_user }}"{% endif %}
+      {% if docker_allowed_users %}{% for user in docker_allowed_users %} --docker-allowed-users "{{ user }}"{% endfor %}{% endif %}
+      {% if docker_group_add %}{% for group in docker_group_add %} --docker-group-add "{{ group }}"{% endfor %}{% endif %}
+      {% if docker_memory %}--docker-memory "{{ docker_memory }}"{% endif %}
+      {% if docker_memory_swap %}--docker-memory-swap "{{ docker_memory_swap }}"{% endif %}
+      {% if docker_memory_reservation %}--docker-memory-reservation "{{ docker_memory_reservation }}"{% endif %}
+      {% if docker_cpu_shares %}--docker-cpu-shares "{{ docker_cpu_shares }}"{% endif %}
+      {% if docker_cgroup_parent %}--docker-cgroup-parent "{{ docker_cgroup_parent }}"{% endif %}
+      {% if docker_oom_kill_disable %}--docker-oom-kill-disable{% endif %}
+      {% if docker_oom_score_adjust %}--docker-oom-score-adjust "{{ docker_oom_score_adjust }}"{% endif %}
+      {% if docker_services_security_opt %}{% for opt in docker_services_security_opt %} --docker-services-security-opt "{{ opt }}"{% endfor %}{% endif %}
+      {% if docker_device_cgroup_rules %}{% for rule in docker_device_cgroup_rules %} --docker-device-cgroup-rules "{{ rule }}"{% endfor %}{% endif %}
+      {% if docker_gpus %}--docker-gpus "{{ docker_gpus }}"{% endif %}
+      {% if docker_services_devices %}--docker-services_devices "{{ docker_services_devices }}"{% endif %}
+      {% if docker_volume_driver %}--docker-volume-driver "{{ docker_volume_driver }}"{% endif %}
+      {% if docker_volume_driver_ops %}--docker-volume-driver-ops "{{ docker_volume_driver_ops }}"{% endif %}
+      {% if docker_cache_dir %}--docker-cache-dir "{{ docker_cache_dir }}"{% endif %}
+      {% if docker_volumes_from %}{% for volume_from in docker_volumes_from %} --docker-volumes-from "{{ volume_from }}"{% endfor %}{% endif %}
+      {% if docker_ipcmode %}--docker-ipcmode "{{ docker_ipcmode }}"{% endif %}
+      {% if docker_mac_address %}--docker-mac-address "{{ docker_mac_address }}"{% endif %}
+      {% if docker_links %}{% for link in docker_links %} --docker-links "{{ link }}"{% endfor %}{% endif %}
+      {% if docker_services_limit %}--docker-services-limit "{{ docker_services_limit }}"{% endif %}
+      {% if docker_service_memory %}--docker-service-memory "{{ docker_service_memory }}"{% endif %}
+      {% if docker_service_memory_swap %}--docker-service-memory-swap "{{ docker_service_memory_swap }}"{% endif %}
+      {% if docker_service_memory_reservation %}--docker-service-memory-reservation "{{ docker_service_memory_reservation }}"{% endif %}
+      {% if docker_service_cgroup_parent %}--docker-service-cgroup-parent "{{ docker_service_cgroup_parent }}"{% endif %}
+      {% if docker_service_cpuset_cpus %}--docker-service-cpuset-cpus "{{ docker_service_cpuset_cpus }}"{% endif %}
+      {% if docker_service_cpu_shares %}--docker-service-cpu-shares "{{ docker_service_cpu_shares }}"{% endif %}
+      {% if docker_service_cpus %}--docker-service-cpus "{{ docker_service_cpus }}"{% endif %}
+      {% if docker_service_gpus %}--docker-service_gpus "{{ docker_service_gpus }}"{% endif %}
+      {% if docker_allowed_images %}{% for image in docker_allowed_images %} --docker-allowed-images "{{ image }}"{% endfor %}{% endif %}
+      {% if docker_allowed_pull_policies %}{% for policy in docker_allowed_pull_policies %} --docker-allowed-pull-policies "{{ policy }}"{% endfor %}{% endif %}
+      {% if docker_allowed_services %}{% for service in docker_allowed_services %} --docker-allowed-services "{{ service }}"{% endfor %}{% endif %}
+      {% if docker_tmpfs %}--docker-tmpfs "{{ docker_tmpfs }}"{% endif %}
+      {% if docker_services_tmpfs %}--docker-services-tmpfs "{{ docker_services_tmpfs }}"{% endif %}
+      {% if docker_sysctls %}--docker-sysctls "{{ docker_sysctls }}"{% endif %}
+      {% if docker_helper_image_flavor %}--docker-helper-image-flavor "{{ docker_helper_image_flavor }}"{% endif %}
+      {% if docker_helper_image_autoset_arch_and_os %}--docker-helper-image-autoset-arch-and-os{% endif %}
+      {% if docker_container_labels %}--docker-container-labels "{{ docker_container_labels }}"{% endif %}
+      {% if docker_enable_ipv6 %}--docker-enable-ipv6{% endif %}
+      {% if docker_ulimit %}--docker-ulimit "{{ docker_ulimit }}"{% endif %}
+      {% if docker_network_mtu %}--docker-network-mtu "{{ docker_network_mtu }}"{% endif %}
       {% if docker_use_host_network %}--docker-network-mode host{% endif %}
       {% if gitlab_runner_output_limit and gitlab_runner_output_limit > 0 %}--output-limit "{{ gitlab_runner_output_limit }}"{% endif %}
       {% if gitlab_runner_concurrent %}--limit "{{ gitlab_runner_concurrent }}"{% endif %}
       {% if gitlab_runner_environment_flags %}{% for env_flag in gitlab_runner_environment_flags %} --env "{{ env_flag }}"{% endfor %}{% endif %}
+      {% if gitlab_runner_pre_get_sources_script %}--pre-get-sources-script "{{ gitlab_runner_pre_get_sources_script }}"{% endif %}
+      {% if gitlab_runner_post_get_sources_script %}--post-get-sources-script "{{ gitlab_runner_post_get_sources_script }}"{% endif %}
+      {% if gitlab_runner_pre_build_script %}--pre-build-script "{{ gitlab_runner_pre_build_script }}"{% endif %}
+      {% if gitlab_runner_post_build_script %}--post-build-script "{{ gitlab_runner_post_build_script }}"{% endif %}
+      {% if gitlab_runner_debug_trace_disabled is defined %}--debug-trace-disabled={{ gitlab_runner_debug_trace_disabled | lower }}{% endif %}
+      {% if gitlab_runner_safe_directory_checkout is defined %}--safe-directory-checkout={{ gitlab_runner_safe_directory_checkout | lower }}{% endif %}
+      {% if gitlab_runner_clean_git_config is defined %}--clean-git-config={{ gitlab_runner_clean_git_config | lower }}{% endif %}
+      {% if gitlab_runner_shell %}--shell "{{ gitlab_runner_shell }}"{% endif %}
+      {% if gitlab_runner_custom_build_dir_enabled is defined %}--custom_build_dir-enabled={{ gitlab_runner_custom_build_dir_enabled | lower }}{% endif %}
+      {% if gitlab_runner_clone_url %}--clone-url "{{ gitlab_runner_clone_url }}"{% endif %}
+      {% if gitlab_runner_unhealthy_requests_limit %}--unhealthy-requests-limit "{{ gitlab_runner_unhealthy_requests_limit }}"{% endif %}
+      {% if gitlab_runner_unhealthy_interval %}--unhealthy-interval "{{ gitlab_runner_unhealthy_interval }}"{% endif %}
+      {% if gitlab_runner_job_status_final_update_retry_limit %}--job-status-final-update-retry-limit "{{ gitlab_runner_job_status_final_update_retry_limit }}"{% endif %}
       {% if cache_type %}--cache-type "{{ cache_type }}"{% endif %}
       {% if cache_shared %}--cache-shared{% endif %}
       {% if cache_path %}--cache-path "{{ cache_path }}"{% endif %}
+      {% if cache_max_uploaded_archive_size %}--cache-max_uploaded_archive_size "{{ cache_max_uploaded_archive_size }}"{% endif %}
       {% if cache_s3_server_address %}--cache-s3-server-address "{{ cache_s3_server_address }}"{% endif %}
       {% if cache_s3_access_key %}--cache-s3-access-key "{{ cache_s3_access_key }}"{% endif %}
       {% if cache_s3_secret_key %}--cache-s3-secret-key "{{ cache_s3_secret_key }}"{% endif %}
@@ -354,6 +411,8 @@
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
   failed_when: token_verification.rc != 0
+
+
 
 - name: Display successful registration message
   debug:

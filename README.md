@@ -10,6 +10,9 @@ This Ansible role deploys and configures GitLab Runner as a Docker container wit
 - **Security focused**: Proper file permissions and security configurations
 - **Production ready**: Includes monitoring, logging, and backup considerations
 - **Dual registration support**: Supports both modern token-based and legacy registration methods
+- **Complete GitLab Runner support**: All configuration options supported via command-line arguments and templates
+- **Optimized deployment**: No post-registration file editing or container restarts
+- **Advanced Docker features**: GPU support, custom build directories, services, and more
 
 ## Requirements
 
@@ -76,6 +79,7 @@ The role supports two registration methods:
    - Uses registration token with `gitlab-runner register` command
    - Requires `gitlab_runner_registration_token` variable
    - Compatible with older GitLab Runner versions and workflows
+   - **NEW**: Uses `--template-config` for immediate application of all settings
 
 ### Optional Variables
 
@@ -86,10 +90,49 @@ gitlab_runner_version: "latest"
 gitlab_runner_concurrent: 4
 gitlab_runner_check_interval: 3
 gitlab_runner_log_level: "info"
+gitlab_runner_log_format: "runner"
+gitlab_runner_shutdown_timeout: 30
+gitlab_runner_connection_max_age: "15m"
 
 # Container configuration
 gitlab_runner_container_name: "gitlab-runner"
 runner_directory: "/var/lib/gitlab-runner"
+```
+
+#### Runner Behavior Settings
+```yaml
+# Runner behavior configuration
+gitlab_runner_maximum_timeout: 0
+gitlab_runner_run_untagged: true
+gitlab_runner_locked: false
+gitlab_runner_access_level: "not_protected"
+gitlab_runner_paused: false
+gitlab_runner_maintenance_note: ""
+
+# Request concurrency limit
+gitlab_runner_request_concurrency: 1
+```
+
+#### Runner Scripts and Configuration
+```yaml
+# Pre/post execution scripts
+gitlab_runner_pre_get_sources_script: ""
+gitlab_runner_post_get_sources_script: ""
+gitlab_runner_pre_build_script: ""
+gitlab_runner_post_build_script: ""
+
+# Debug and security settings
+gitlab_runner_debug_trace_disabled: false
+gitlab_runner_safe_directory_checkout: true
+gitlab_runner_clean_git_config: true
+gitlab_runner_shell: ""
+
+# Advanced settings
+gitlab_runner_custom_build_dir_enabled: true
+gitlab_runner_clone_url: ""
+gitlab_runner_unhealthy_requests_limit: 0
+gitlab_runner_unhealthy_interval: "0s"
+gitlab_runner_job_status_final_update_retry_limit: 0
 ```
 
 #### Docker Executor Settings
@@ -98,13 +141,99 @@ runner_directory: "/var/lib/gitlab-runner"
 docker_image: "alpine:latest"
 docker_privileged: false
 docker_pull_policy: "if-not-present"
+docker_helper_image: ""
+docker_helper_image_flavor: "alpine"
+docker_helper_image_autoset_arch_and_os: false
 
-# Advanced Docker settings
+# Resource limits
 docker_cpus: ""
 docker_memory: ""
+docker_memory_swap: ""
+docker_memory_reservation: ""
+docker_cpu_shares: ""
+docker_cpuset_cpus: ""
+docker_cpuset_mems: ""
+
+# Security and capabilities
+docker_cap_add: []
+docker_cap_drop: []
+docker_security_opt: []
+docker_services_security_opt: []
+docker_oom_kill_disable: false
+docker_oom_score_adjust: ""
+
+# Network configuration
+docker_network_mode: "bridge"
+docker_use_host_network: false
+docker_network_mtu: 0
+docker_enable_ipv6: false
+docker_extra_hosts: []
+docker_dns: []
+docker_dns_search: []
+
+# Volumes and storage
 docker_volumes:
   - "/var/run/docker.sock:/var/run/docker.sock"
   - "/cache:/cache"
+docker_volumes_from: []
+docker_cache_dir: ""
+docker_volume_driver: ""
+docker_volume_driver_ops: {}
+
+# Advanced Docker features
+docker_gpus: ""
+docker_devices: []
+docker_device_cgroup_rules: []
+docker_tmpfs: {}
+docker_services_tmpfs: {}
+docker_sysctls: {}
+docker_ulimit: {}
+docker_container_labels: {}
+
+# Allowed images and services
+docker_allowed_images: []
+docker_allowed_services: []
+docker_allowed_pull_policies: ["if-not-present", "always"]
+docker_allowed_privileged_images: []
+docker_allowed_privileged_services: []
+docker_allowed_users: []
+
+# Service configuration
+docker_services_limit: -1
+docker_service_memory: ""
+docker_service_memory_swap: ""
+docker_service_memory_reservation: ""
+docker_service_cpus: ""
+docker_service_cpu_shares: ""
+docker_service_cpuset_cpus: ""
+docker_service_gpus: ""
+docker_service_cgroup_parent: ""
+
+# Additional settings
+docker_hostname: ""
+docker_user: ""
+docker_group_add: []
+docker_mac_address: ""
+docker_ipcmode: ""
+docker_runtime: ""
+docker_isolation: ""
+docker_links: []
+docker_wait_for_services_timeout: 30
+docker_disable_cache: false
+docker_disable_entrypoint_overwrite: false
+```
+
+#### Docker Services Configuration
+```yaml
+# Docker services for jobs
+docker_services:
+  - name: "postgres:13"
+    alias: "postgres"
+    environment:
+      - "POSTGRES_PASSWORD=password"
+  - name: "redis:6"
+    alias: "cache"
+    command: ["redis-server", "--appendonly", "yes"]
 ```
 
 #### Network Configuration
@@ -130,12 +259,35 @@ docker_network: ""  # Leave empty to use default bridge
 cache_type: "" # "s3", "gcs", "azure", etc.
 cache_path: ""
 cache_shared: false
+cache_max_uploaded_archive_size: 0
 
-# S3 cache example
+# S3 cache configuration
 cache_s3_server_address: "s3.amazonaws.com"
 cache_s3_access_key: "your-access-key"
 cache_s3_secret_key: "your-secret-key"
 cache_s3_bucket_name: "my-cache-bucket"
+cache_s3_bucket_location: ""
+cache_s3_insecure: false
+cache_s3_authentication_type: "access-key"
+cache_s3_server_side_encryption: ""
+cache_s3_server_side_encryption_key_id: ""
+cache_s3_dual_stack: true
+cache_s3_accelerate: false
+cache_s3_path_style: false
+cache_s3_role_arn: ""
+cache_s3_upload_role_arn: ""
+
+# GCS cache configuration
+cache_gcs_access_id: ""
+cache_gcs_private_key: ""
+cache_gcs_credentials_file: ""
+cache_gcs_bucket_name: ""
+
+# Azure cache configuration
+cache_azure_account_name: ""
+cache_azure_account_key: ""
+cache_azure_container_name: ""
+cache_azure_storage_domain: ""
 ```
 
 ## Example Playbook
@@ -156,7 +308,7 @@ cache_s3_bucket_name: "my-cache-bucket"
           - "production"
 ```
 
-### Legacy Registration Method
+### Legacy Registration Method (Optimized)
 ```yaml
 ---
 - hosts: gitlab-runners
@@ -170,9 +322,14 @@ cache_s3_bucket_name: "my-cache-bucket"
         gitlab_runner_tags:
           - "docker"
           - "legacy"
+        # All settings are applied immediately via --template-config
+        gitlab_runner_concurrent: 10
+        gitlab_runner_request_concurrency: 2
+        gitlab_runner_run_untagged: false
+        gitlab_runner_locked: false
 ```
 
-### Advanced Configuration
+### Advanced Configuration with All Features
 ```yaml
 ---
 - hosts: gitlab-runners
@@ -184,10 +341,14 @@ cache_s3_bucket_name: "my-cache-bucket"
         gitlab_runner_token: "{{ vault_gitlab_token }}"
         gitlab_runner_name: "advanced-runner"
         gitlab_runner_concurrent: 10
+        gitlab_runner_request_concurrency: 2
         gitlab_runner_tags:
           - "docker"
           - "kubernetes"
           - "production"
+        gitlab_runner_run_untagged: false
+        gitlab_runner_locked: false
+        gitlab_runner_access_level: "not_protected"
         
         # Docker executor settings
         docker_image: "ubuntu:20.04"
@@ -196,6 +357,27 @@ cache_s3_bucket_name: "my-cache-bucket"
           - "/var/run/docker.sock:/var/run/docker.sock"
           - "/cache:/cache"
           - "/builds:/builds"
+        docker_memory: "4g"
+        docker_cpus: "2"
+        docker_gpus: "all"
+        
+        # Advanced Docker settings
+        docker_allowed_images: ["ubuntu:*", "alpine:*", "node:*"]
+        docker_allowed_services: ["postgres:*", "redis:*", "mysql:*"]
+        docker_helper_image_flavor: "ubuntu"
+        docker_container_labels:
+          environment: "production"
+          team: "devops"
+        
+        # Docker services
+        docker_services:
+          - name: "postgres:13"
+            alias: "postgres"
+            environment:
+              - "POSTGRES_PASSWORD=password"
+              - "POSTGRES_DB=test"
+          - name: "redis:6"
+            alias: "cache"
         
         # Network configuration
         runner_network_per_build: true
@@ -208,6 +390,16 @@ cache_s3_bucket_name: "my-cache-bucket"
         cache_s3_access_key: "{{ vault_s3_access_key }}"
         cache_s3_secret_key: "{{ vault_s3_secret_key }}"
         cache_s3_bucket_name: "gitlab-runner-cache"
+        cache_s3_bucket_location: "us-east-1"
+        cache_shared: true
+        cache_max_uploaded_archive_size: 5368709120  # 5GB
+        
+        # Custom build directory
+        gitlab_runner_custom_build_dir_enabled: true
+        
+        # Pre/post scripts
+        gitlab_runner_pre_build_script: "echo 'Starting build...'"
+        gitlab_runner_post_build_script: "echo 'Build completed'"
 ```
 
 ## Configuration File
@@ -216,11 +408,13 @@ The role generates a `config.toml` file based on the Jinja2 template in `templat
 
 ### Key Configuration Sections
 
-1. **Global Settings**: Concurrent jobs, check interval, log level
+1. **Global Settings**: Concurrent jobs, check interval, log level, shutdown timeout
 2. **Session Server**: For job artifacts and cache
-3. **Runner Configuration**: URL, token, tags, executor settings
-4. **Docker Executor**: Image, volumes, network, security settings
-5. **Cache Configuration**: S3, GCS, or local cache settings
+3. **Runner Configuration**: URL, token, tags, executor settings, scripts
+4. **Docker Executor**: Complete Docker configuration with all supported options
+5. **Cache Configuration**: S3, GCS, Azure cache settings
+6. **Custom Build Directory**: Support for custom build paths
+7. **Docker Services**: Additional services for jobs
 
 ### Registration Method Differences
 
@@ -229,11 +423,12 @@ The role generates a `config.toml` file based on the Jinja2 template in `templat
 - Runner starts immediately with full configuration
 - More secure as token is not exposed in command line
 
-#### Legacy Method
-- Minimal `config.toml` is generated
-- Runner is registered using `gitlab-runner register` command
-- Registration token is used during registration process
-- Runner restarts after successful registration
+#### Legacy Method (Optimized)
+- **NEW**: Uses `--template-config` to apply all settings immediately
+- Complete `config.toml` is generated before registration
+- All settings are applied via command-line arguments during registration
+- **NO POST-REGISTRATION EDITING**: No file modifications or container restarts needed
+- Registration token is used only during registration process
 
 ## Security Considerations
 
@@ -251,6 +446,7 @@ The role generates a `config.toml` file based on the Jinja2 template in `templat
 - Use specific image versions instead of `latest`
 - Implement proper network isolation
 - Set appropriate file permissions
+- Use allowed images and services lists
 
 ### Network Security
 - Use custom networks for isolation
@@ -278,7 +474,7 @@ docker_use_host_network: true
 ### Log Configuration
 ```yaml
 gitlab_runner_log_level: "info" # debug, info, warn, error
-gitlab_runner_log_format: "runner"
+gitlab_runner_log_format: "runner" # runner, text, json
 ```
 
 ### Health Checks
@@ -292,50 +488,98 @@ The role includes basic health checks for:
 - Container resource usage
 - Job execution statistics
 
-## S3 Cache Configuration
+## Advanced Features
 
-### Legacy Registration with S3 Cache
-When using legacy registration method with S3 cache, the role now properly includes the `SecretKey` parameter:
-
+### GPU Support
 ```yaml
-# S3 cache configuration for legacy registration
-cache_type: "s3"
-cache_s3_server_address: "192.168.5.3:9000"
-cache_s3_access_key: "your-access-key"
-cache_s3_secret_key: "your-secret-key"  # Now properly included!
-cache_s3_bucket_name: "gitlab-cache"
-cache_s3_insecure: true
+# Enable GPU support for jobs
+docker_gpus: "all"
+# Or specify specific GPUs
+docker_gpus: "0,1"
 ```
 
-### S3 Cache Parameters
-All S3 cache parameters are supported in legacy registration:
+### Custom Build Directories
+```yaml
+# Enable custom build directory feature
+gitlab_runner_custom_build_dir_enabled: true
+```
 
-- `cache_s3_server_address`: S3 server address
-- `cache_s3_access_key`: Access key
-- `cache_s3_secret_key`: Secret key (now properly included)
-- `cache_s3_bucket_name`: Bucket name
-- `cache_s3_bucket_location`: Bucket location (optional)
-- `cache_s3_insecure`: Use insecure connection
-- `cache_s3_authentication_type`: Authentication type (optional)
-- `cache_s3_server_side_encryption`: Server-side encryption (optional)
-- `cache_s3_server_side_encryption_key_id`: Encryption key ID (optional)
+### Docker Services
+```yaml
+# Define services for jobs
+docker_services:
+  - name: "postgres:13"
+    alias: "postgres"
+    environment:
+      - "POSTGRES_PASSWORD=password"
+  - name: "redis:6"
+    alias: "cache"
+    command: ["redis-server", "--appendonly", "yes"]
+```
 
-### Troubleshooting S3 Cache Issues
+### Pre/Post Scripts
+```yaml
+# Scripts executed before/after operations
+gitlab_runner_pre_get_sources_script: "git config --global user.name 'CI Bot'"
+gitlab_runner_post_get_sources_script: "echo 'Sources retrieved'"
+gitlab_runner_pre_build_script: "echo 'Starting build...'"
+gitlab_runner_post_build_script: "echo 'Build completed'"
+```
 
-1. **SecretKey not found in config**
-   - Ensure `cache_s3_secret_key` is set in your variables
-   - Check that legacy registration completed successfully
-   - Verify the role version supports S3 secret key
+### Resource Limits
+```yaml
+# Set resource limits for containers
+docker_memory: "4g"
+docker_cpus: "2"
+docker_cpu_shares: 1024
+docker_memory_swap: "8g"
+docker_memory_reservation: "2g"
+```
 
-2. **S3 connectivity issues**
-   - Use `docker_use_host_network: true` for local S3 servers
-   - Check network connectivity from container
-   - Verify S3 server is accessible
+## S3 Cache Configuration
 
-3. **Cache not working**
-   - Check S3 credentials are correct
-   - Verify bucket exists and is writable
-   - Check container has network access to S3
+### Complete S3 Cache Support
+The role now supports all S3 cache features:
+
+```yaml
+# S3 cache configuration
+cache_type: "s3"
+cache_s3_server_address: "s3.amazonaws.com"
+cache_s3_access_key: "your-access-key"
+cache_s3_secret_key: "your-secret-key"
+cache_s3_bucket_name: "gitlab-cache"
+cache_s3_bucket_location: "us-east-1"
+cache_s3_insecure: false
+cache_s3_authentication_type: "access-key"
+cache_s3_server_side_encryption: "AES256"
+cache_s3_server_side_encryption_key_id: "alias/my-key"
+cache_s3_dual_stack: true
+cache_s3_accelerate: false
+cache_s3_path_style: false
+cache_s3_role_arn: "arn:aws:iam::123456789012:role/cache-role"
+cache_s3_upload_role_arn: "arn:aws:iam::123456789012:role/upload-role"
+```
+
+### GCS Cache Support
+```yaml
+# GCS cache configuration
+cache_type: "gcs"
+cache_gcs_access_id: "service-account@project.iam.gserviceaccount.com"
+cache_gcs_private_key: "-----BEGIN PRIVATE KEY-----\n..."
+cache_gcs_bucket_name: "gitlab-cache"
+# Or use credentials file
+cache_gcs_credentials_file: "/path/to/credentials.json"
+```
+
+### Azure Cache Support
+```yaml
+# Azure cache configuration
+cache_type: "azure"
+cache_azure_account_name: "storageaccount"
+cache_azure_account_key: "account-key"
+cache_azure_container_name: "gitlab-cache"
+cache_azure_storage_domain: "blob.core.windows.net"
+```
 
 ## Troubleshooting
 
@@ -396,13 +640,16 @@ cat /var/lib/gitlab-runner/config.toml
 docker logs gitlab-runner
 ```
 
-#### Legacy Method
+#### Legacy Method (Optimized)
 ```bash
 # Check registration process
 docker logs gitlab-runner | grep -i register
 
 # Check final config.toml
 cat /var/lib/gitlab-runner/config.toml
+
+# Verify all settings were applied
+docker exec gitlab-runner gitlab-runner verify
 ```
 
 ### Diagnostic Scripts
@@ -532,6 +779,21 @@ For issues and questions:
 - Review GitLab Runner documentation
 
 ## Changelog
+
+### Version 1.3.0
+- **MAJOR IMPROVEMENT**: Complete GitLab Runner configuration support
+- **NEW**: Added support for all GitLab Runner command-line arguments
+- **NEW**: Added `--template-config` for immediate application of all settings
+- **NEW**: Support for GPU containers, custom build directories, Docker services
+- **NEW**: Complete S3, GCS, and Azure cache configuration support
+- **NEW**: Advanced Docker features (memory limits, CPU shares, ulimits, etc.)
+- **NEW**: Pre/post execution scripts support
+- **NEW**: Runner behavior settings (run_untagged, locked, access_level, etc.)
+- **OPTIMIZATION**: Removed all post-registration file editing and container restarts
+- **OPTIMIZATION**: All settings applied immediately during registration
+- **ENHANCEMENT**: Comprehensive variable documentation and organization
+- **ENHANCEMENT**: Improved template structure with all configuration sections
+- **ENHANCEMENT**: Better error handling and validation
 
 ### Version 1.2.0
 - Fixed legacy registration process to properly handle authentication token generation

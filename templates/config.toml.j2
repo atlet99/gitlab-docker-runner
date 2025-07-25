@@ -64,6 +64,63 @@ concurrent = {{ gitlab_runner_concurrent }}
   output_limit = {{ gitlab_runner_output_limit // 1024 }}
   {% endif -%}
 
+  {% if gitlab_runner_request_concurrency -%}
+  request_concurrency = {{ gitlab_runner_request_concurrency }}
+  {% endif -%}
+
+  {% if gitlab_runner_pre_get_sources_script -%}
+  pre_get_sources_script = "{{ gitlab_runner_pre_get_sources_script }}"
+  {% endif -%}
+
+  {% if gitlab_runner_post_get_sources_script -%}
+  post_get_sources_script = "{{ gitlab_runner_post_get_sources_script }}"
+  {% endif -%}
+
+  {% if gitlab_runner_pre_build_script -%}
+  pre_build_script = "{{ gitlab_runner_pre_build_script }}"
+  {% endif -%}
+
+  {% if gitlab_runner_post_build_script -%}
+  post_build_script = "{{ gitlab_runner_post_build_script }}"
+  {% endif -%}
+
+  {% if gitlab_runner_debug_trace_disabled is defined -%}
+  debug_trace_disabled = {{ gitlab_runner_debug_trace_disabled | lower }}
+  {% endif -%}
+
+  {% if gitlab_runner_safe_directory_checkout is defined -%}
+  safe_directory_checkout = {{ gitlab_runner_safe_directory_checkout | lower }}
+  {% endif -%}
+
+  {% if gitlab_runner_clean_git_config is defined -%}
+  clean_git_config = {{ gitlab_runner_clean_git_config | lower }}
+  {% endif -%}
+
+  {% if gitlab_runner_shell -%}
+  shell = "{{ gitlab_runner_shell }}"
+  {% endif -%}
+
+  {% if gitlab_runner_clone_url -%}
+  clone_url = "{{ gitlab_runner_clone_url }}"
+  {% endif -%}
+
+  {% if gitlab_runner_unhealthy_requests_limit -%}
+  unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit }}
+  {% endif -%}
+
+  {% if gitlab_runner_unhealthy_interval -%}
+  unhealthy_interval = "{{ gitlab_runner_unhealthy_interval }}"
+  {% endif -%}
+
+  {% if gitlab_runner_job_status_final_update_retry_limit -%}
+  job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit }}
+  {% endif -%}
+
+  {% if gitlab_runner_custom_build_dir_enabled is defined -%}
+  [runners.custom_build_dir]
+    enabled = {{ gitlab_runner_custom_build_dir_enabled | lower }}
+  {% endif -%}
+
   {% if runner_network_per_build -%}
   environment = ["FF_NETWORK_PER_BUILD=1"
   {% if gitlab_runner_environment_flags -%}
@@ -179,6 +236,196 @@ concurrent = {{ gitlab_runner_concurrent }}
     user = "{{ docker_user }}"
     {% endif -%}
 
+    {% if docker_allowed_users and docker_allowed_users|length > 0 %}
+    allowed_users = {{ docker_allowed_users | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_group_add and docker_group_add|length > 0 %}
+    group_add = {{ docker_group_add | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_memory %}
+    memory = "{{ docker_memory }}"
+    {% endif -%}
+
+    {% if docker_memory_swap %}
+    memory_swap = "{{ docker_memory_swap }}"
+    {% endif -%}
+
+    {% if docker_memory_reservation %}
+    memory_reservation = "{{ docker_memory_reservation }}"
+    {% endif -%}
+
+    {% if docker_cpu_shares %}
+    cpu_shares = {{ docker_cpu_shares }}
+    {% endif -%}
+
+    {% if docker_cgroup_parent %}
+    cgroup_parent = "{{ docker_cgroup_parent }}"
+    {% endif -%}
+
+    {% if docker_oom_score_adjust %}
+    oom_score_adjust = {{ docker_oom_score_adjust }}
+    {% endif -%}
+
+    {% if docker_services_security_opt and docker_services_security_opt|length > 0 %}
+    services_security_opt = {{ docker_services_security_opt | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_device_cgroup_rules and docker_device_cgroup_rules|length > 0 %}
+    device_cgroup_rules = {{ docker_device_cgroup_rules | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_gpus %}
+    gpus = "{{ docker_gpus }}"
+    {% endif -%}
+
+    {% if docker_services_devices and docker_services_devices|length > 0 %}
+    services_devices = {{ docker_services_devices | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_volume_driver %}
+    volume_driver = "{{ docker_volume_driver }}"
+    {% endif -%}
+
+    {% if docker_volume_driver_ops and docker_volume_driver_ops|length > 0 %}
+    [runners.docker.volume_driver_ops]
+    {% for key, value in docker_volume_driver_ops.items() -%}
+      "{{ key }}" = "{{ value }}"
+    {% endfor -%}
+    {% endif -%}
+
+    {% if docker_cache_dir %}
+    cache_dir = "{{ docker_cache_dir }}"
+    {% endif -%}
+
+    {% if docker_volumes_from and docker_volumes_from|length > 0 %}
+    volumes_from = {{ docker_volumes_from | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_ipcmode %}
+    ipcmode = "{{ docker_ipcmode }}"
+    {% endif -%}
+
+    {% if docker_mac_address %}
+    mac_address = "{{ docker_mac_address }}"
+    {% endif -%}
+
+    {% if docker_links and docker_links|length > 0 %}
+    links = {{ docker_links | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_services_limit %}
+    services_limit = {{ docker_services_limit }}
+    {% endif -%}
+
+    {% if docker_service_memory %}
+    service_memory = "{{ docker_service_memory }}"
+    {% endif -%}
+
+    {% if docker_service_memory_swap %}
+    service_memory_swap = "{{ docker_service_memory_swap }}"
+    {% endif -%}
+
+    {% if docker_service_memory_reservation %}
+    service_memory_reservation = "{{ docker_service_memory_reservation }}"
+    {% endif -%}
+
+    {% if docker_service_cgroup_parent %}
+    service_cgroup_parent = "{{ docker_service_cgroup_parent }}"
+    {% endif -%}
+
+    {% if docker_service_cpuset_cpus %}
+    service_cpuset_cpus = "{{ docker_service_cpuset_cpus }}"
+    {% endif -%}
+
+    {% if docker_service_cpu_shares %}
+    service_cpu_shares = {{ docker_service_cpu_shares }}
+    {% endif -%}
+
+    {% if docker_service_cpus %}
+    service_cpus = "{{ docker_service_cpus }}"
+    {% endif -%}
+
+    {% if docker_service_gpus %}
+    service_gpus = "{{ docker_service_gpus }}"
+    {% endif -%}
+
+    {% if docker_allowed_images and docker_allowed_images|length > 0 %}
+    allowed_images = {{ docker_allowed_images | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_allowed_pull_policies and docker_allowed_pull_policies|length > 0 %}
+    allowed_pull_policies = {{ docker_allowed_pull_policies | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_allowed_services and docker_allowed_services|length > 0 %}
+    allowed_services = {{ docker_allowed_services | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_tmpfs and docker_tmpfs|length > 0 %}
+    [runners.docker.tmpfs]
+    {% for tmpfs_path, tmpfs_options in docker_tmpfs.items() -%}
+      "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
+    {% endfor -%}
+    {% endif -%}
+
+    {% if docker_services_tmpfs and docker_services_tmpfs|length > 0 %}
+    [runners.docker.services_tmpfs]
+    {% for tmpfs_path, tmpfs_options in docker_services_tmpfs.items() -%}
+      "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
+    {% endfor -%}
+    {% endif -%}
+
+    {% if docker_helper_image_flavor %}
+    helper_image_flavor = "{{ docker_helper_image_flavor }}"
+    {% endif -%}
+
+    {% if docker_helper_image_autoset_arch_and_os %}
+    helper_image_autoset_arch_and_os = {{ docker_helper_image_autoset_arch_and_os | lower }}
+    {% endif -%}
+
+    {% if docker_container_labels and docker_container_labels|length > 0 %}
+    [runners.docker.container_labels]
+    {% for label_key, label_value in docker_container_labels.items() -%}
+      "{{ label_key }}" = "{{ label_value }}"
+    {% endfor -%}
+    {% endif -%}
+
+    {% if docker_enable_ipv6 %}
+    enable_ipv6 = {{ docker_enable_ipv6 | lower }}
+    {% endif -%}
+
+    {% if docker_ulimit and docker_ulimit|length > 0 %}
+    [runners.docker.ulimit]
+    {% for ulimit_name, ulimit_value in docker_ulimit.items() -%}
+      "{{ ulimit_name }}" = "{{ ulimit_value }}"
+    {% endfor -%}
+    {% endif -%}
+
+    {% if docker_network_mtu %}
+    network_mtu = {{ docker_network_mtu }}
+    {% endif -%}
+
+    {% if docker_services and docker_services|length > 0 -%}
+    {% for service in docker_services -%}
+    [[runners.docker.services]]
+      name = "{{ service.name }}"
+      {% if service.alias -%}
+      alias = "{{ service.alias }}"
+      {% endif -%}
+      {% if service.entrypoint -%}
+      entrypoint = {{ service.entrypoint | to_nice_json }}
+      {% endif -%}
+      {% if service.command -%}
+      command = {{ service.command | to_nice_json }}
+      {% endif -%}
+      {% if service.environment -%}
+      environment = {{ service.environment | to_nice_json }}
+      {% endif -%}
+    {% endfor -%}
+    {% endif -%}
+
   {% if cache_type -%}
   [runners.cache]
     Type = "{{ cache_type }}"
@@ -186,6 +433,9 @@ concurrent = {{ gitlab_runner_concurrent }}
     Path = "{{ cache_path }}"
     {% endif -%}
     Shared = {{ cache_shared | lower }}
+    {% if cache_max_uploaded_archive_size -%}
+    MaxUploadedArchiveSize = {{ cache_max_uploaded_archive_size }}
+    {% endif -%}
 
     {% if cache_type == "s3" -%}
     [runners.cache.s3]
@@ -213,6 +463,53 @@ concurrent = {{ gitlab_runner_concurrent }}
       {% endif -%}
       {% if cache_s3_server_side_encryption_key_id -%}
       ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"
+      {% endif -%}
+      {% if cache_s3_dual_stack is defined -%}
+      DualStack = {{ cache_s3_dual_stack | lower }}
+      {% endif -%}
+      {% if cache_s3_accelerate -%}
+      Accelerate = {{ cache_s3_accelerate | lower }}
+      {% endif -%}
+      {% if cache_s3_path_style is defined -%}
+      PathStyle = {{ cache_s3_path_style | lower }}
+      {% endif -%}
+      {% if cache_s3_role_arn -%}
+      RoleARN = "{{ cache_s3_role_arn }}"
+      {% endif -%}
+      {% if cache_s3_upload_role_arn -%}
+      UploadRoleARN = "{{ cache_s3_upload_role_arn }}"
+      {% endif -%}
+    {% endif -%}
+
+    {% if cache_type == "gcs" -%}
+    [runners.cache.gcs]
+      {% if cache_gcs_access_id -%}
+      AccessID = "{{ cache_gcs_access_id }}"
+      {% endif -%}
+      {% if cache_gcs_private_key -%}
+      PrivateKey = "{{ cache_gcs_private_key }}"
+      {% endif -%}
+      {% if cache_gcs_credentials_file -%}
+      CredentialsFile = "{{ cache_gcs_credentials_file }}"
+      {% endif -%}
+      {% if cache_gcs_bucket_name -%}
+      BucketName = "{{ cache_gcs_bucket_name }}"
+      {% endif -%}
+    {% endif -%}
+
+    {% if cache_type == "azure" -%}
+    [runners.cache.azure]
+      {% if cache_azure_account_name -%}
+      AccountName = "{{ cache_azure_account_name }}"
+      {% endif -%}
+      {% if cache_azure_account_key -%}
+      AccountKey = "{{ cache_azure_account_key }}"
+      {% endif -%}
+      {% if cache_azure_container_name -%}
+      ContainerName = "{{ cache_azure_container_name }}"
+      {% endif -%}
+      {% if cache_azure_storage_domain -%}
+      StorageDomain = "{{ cache_azure_storage_domain }}"
       {% endif -%}
     {% endif -%}
   {% endif -%}

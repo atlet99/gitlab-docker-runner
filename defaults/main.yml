@@ -49,6 +49,31 @@ gitlab_runner_tags: []
 gitlab_runner_environment_flags: []
 # Output limit in bytes (0 = unlimited)
 gitlab_runner_output_limit: 0
+# Request concurrency limit
+gitlab_runner_request_concurrency: 1
+
+# Runner behavior settings
+gitlab_runner_maximum_timeout: 0
+gitlab_runner_run_untagged: true
+gitlab_runner_locked: false
+gitlab_runner_access_level: "not_protected"
+gitlab_runner_paused: false
+gitlab_runner_maintenance_note: ""
+
+# Runner scripts and configuration
+gitlab_runner_pre_get_sources_script: ""
+gitlab_runner_post_get_sources_script: ""
+gitlab_runner_pre_build_script: ""
+gitlab_runner_post_build_script: ""
+gitlab_runner_debug_trace_disabled: false
+gitlab_runner_safe_directory_checkout: true
+gitlab_runner_clean_git_config: true
+gitlab_runner_shell: ""
+gitlab_runner_custom_build_dir_enabled: true
+gitlab_runner_clone_url: ""
+gitlab_runner_unhealthy_requests_limit: 0
+gitlab_runner_unhealthy_interval: "0s"
+gitlab_runner_job_status_final_update_retry_limit: 0
 
 # Registration method selection
 # Set to 'legacy' to use registration_token with gitlab-runner register command
@@ -143,6 +168,93 @@ docker_allowed_privileged_images: []
 docker_allowed_privileged_services: []
 
 # ------------------------------
+# Docker Executor advanced (continued)
+# ------------------------------
+# Allowed users for Docker containers
+docker_allowed_users: []
+# Additional groups for Docker containers
+docker_group_add: []
+# Memory limit for containers
+docker_memory: ""
+# Memory swap limit for containers
+docker_memory_swap: ""
+# Memory soft limit for containers
+docker_memory_reservation: ""
+# CPU shares for containers
+docker_cpu_shares: ""
+# Cgroup parent for containers
+docker_cgroup_parent: ""
+# OOM score adjustment for containers
+docker_oom_score_adjust: ""
+# Security options for Docker services
+docker_services_security_opt: []
+# Device cgroup rules for containers
+docker_device_cgroup_rules: []
+# GPU devices for containers
+docker_gpus: ""
+# Device mapping for services
+docker_services_devices: {}
+# Volume driver for containers
+docker_volume_driver: ""
+# Volume driver options
+docker_volume_driver_ops: {}
+# Cache directory for Docker
+docker_cache_dir: ""
+# Volumes to inherit from other containers
+docker_volumes_from: []
+# IPC mode for containers
+docker_ipcmode: ""
+# MAC address for containers
+docker_mac_address: ""
+# Container links
+docker_links: []
+# Services limit
+docker_services_limit: -1
+# Service memory limit
+docker_service_memory: ""
+# Service memory swap limit
+docker_service_memory_swap: ""
+# Service memory soft limit
+docker_service_memory_reservation: ""
+# Service cgroup parent
+docker_service_cgroup_parent: ""
+# Service CPU set
+docker_service_cpuset_cpus: ""
+# Service CPU shares
+docker_service_cpu_shares: ""
+# Service CPUs
+docker_service_cpus: ""
+# Service GPUs
+docker_service_gpus: ""
+# Allowed Docker images
+docker_allowed_images: []
+# Allowed pull policies
+docker_allowed_pull_policies: ["if-not-present", "always"]
+# Allowed Docker services
+docker_allowed_services: []
+# Tmpfs mounts for containers
+docker_tmpfs: {}
+# Tmpfs mounts for services
+docker_services_tmpfs: {}
+# Sysctls for containers
+docker_sysctls: {}
+# Helper image flavor
+docker_helper_image_flavor: "alpine"
+# Auto-set helper image architecture and OS
+docker_helper_image_autoset_arch_and_os: false
+# Container labels
+docker_container_labels: {}
+# Enable IPv6 for containers
+docker_enable_ipv6: false
+# Ulimit values for containers
+docker_ulimit: {}
+# Network MTU for containers
+docker_network_mtu: 0
+
+# Docker services configuration
+docker_services: []
+
+# ------------------------------
 # Network & build dir
 # ------------------------------
 # Create network per build
@@ -179,10 +291,12 @@ fallback_ip_address: "127.0.0.1"
 # ------------------------------
 # Cache type (s3, gcs, azure, local)
 cache_type: ""
-# Cache path
+# Cache path (leave empty for default and runner will use base directory into bucket)
 cache_path: ""
 # Share cache between runners
 cache_shared: false
+# Maximum uploaded archive size for cache (in bytes)
+cache_max_uploaded_archive_size: 0
 
 # S3 cache configuration
 cache_s3_server_address: ""
@@ -194,3 +308,20 @@ cache_s3_insecure: false
 cache_s3_authentication_type: ""
 cache_s3_server_side_encryption: ""
 cache_s3_server_side_encryption_key_id: ""
+cache_s3_dual_stack: true
+cache_s3_accelerate: false
+cache_s3_path_style: false
+cache_s3_role_arn: ""
+cache_s3_upload_role_arn: ""
+
+# GCS cache configuration
+cache_gcs_access_id: ""
+cache_gcs_private_key: ""
+cache_gcs_credentials_file: ""
+cache_gcs_bucket_name: ""
+
+# Azure cache configuration
+cache_azure_account_name: ""
+cache_azure_account_key: ""
+cache_azure_container_name: ""
+cache_azure_storage_domain: ""
