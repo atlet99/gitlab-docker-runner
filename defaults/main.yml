@@ -25,7 +25,7 @@ gitlab_runner_shutdown_timeout: 30
 # Session server
 session_server_listen_address: ""
 session_server_advertise_address: ""
-session_server_timeout: 1800
+session_server_session_timeout: 1800
 
 # Feature flags
 runner_feature_flags: {}
