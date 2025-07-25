@@ -140,7 +140,7 @@
 
 - name: Generate complete config.toml template for legacy registration
   ansible.builtin.template:
-    src: config.toml.j2
+    src: config.toml.legacy.j2
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
   when: 
@@ -205,6 +205,62 @@
     - legacy_register_cmd is defined
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
+
+- name: Read generated config.toml to extract dynamic data
+  shell: docker exec {{ gitlab_runner_container_name }} cat /etc/gitlab-runner/config.toml
+  register: generated_config
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+
+- name: Extract runner ID and token from generated config
+  ansible.builtin.set_fact:
+    runner_id: "{{ generated_config.stdout | regex_search('id = ([0-9]+)') | regex_replace('.*id = ([0-9]+).*', '\\1') }}"
+    runner_token: "{{ generated_config.stdout | regex_search('token = \"([a-zA-Z0-9_-]+)\"') | regex_replace('.*token = \"([a-zA-Z0-9_-]+)\".*', '\\1') }}"
+    token_obtained_at: "{{ generated_config.stdout | regex_search('token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)') | regex_replace('.*token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z).*', '\\1') }}"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - generated_config is defined
+
+
+
+- name: Generate final config.toml with dynamic data
+  ansible.builtin.template:
+    src: config.toml.legacy.j2
+    dest: "{{ runner_directory }}/config.toml"
+    mode: '0600'
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - runner_id is defined
+    - runner_token is defined
+
+- name: Restart GitLab Runner container to apply final configuration
+  docker_container:
+    name: "{{ gitlab_runner_container_name }}"
+    state: started
+    restart_policy: always
+    recreate: true
+    network_mode: host
+    volumes:
+      - "{{ runner_directory }}:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      TZ: "{{ tz }}"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - runner_id is defined
+    - runner_token is defined
 
 - name: Check if runner is already registered
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
