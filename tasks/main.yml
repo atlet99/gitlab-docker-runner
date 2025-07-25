@@ -234,17 +234,73 @@
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
 
-- name: Extract runner ID and token from backup config
-  ansible.builtin.set_fact:
-    runner_id: "{{ backup_config.stdout | regex_search('id = ([0-9]+)') | regex_replace('.*id = ([0-9]+).*', '\\1') }}"
-    runner_token: "{{ backup_config.stdout | regex_search('token = \"([a-zA-Z0-9_-]+)\"') | regex_replace('.*token = \"([a-zA-Z0-9_-]+)\".*', '\\1') }}"
-    token_obtained_at: "{{ backup_config.stdout | regex_search('token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)') | regex_replace('.*token_obtained_at = ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z).*', '\\1') }}"
+- name: Extract runner ID from backup config
+  shell: docker exec {{ gitlab_runner_container_name }} grep "id = " /etc/gitlab-runner/config.toml.backup | awk '{print $3}'
+  register: extracted_runner_id
   when: 
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
     - backup_config is defined
+
+- name: Extract runner token from backup config
+  shell: docker exec {{ gitlab_runner_container_name }} grep "token = " /etc/gitlab-runner/config.toml.backup | head -1 | awk -F'"' '{print $2}'
+  register: extracted_runner_token
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
+
+- name: Extract token_obtained_at from backup config
+  shell: docker exec {{ gitlab_runner_container_name }} grep "token_obtained_at = " /etc/gitlab-runner/config.toml.backup | awk '{print $3}'
+  register: extracted_token_obtained_at
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
+
+- name: Set extracted data as facts
+  ansible.builtin.set_fact:
+    runner_id: "{{ extracted_runner_id.stdout | trim }}"
+    runner_token: "{{ extracted_runner_token.stdout | trim }}"
+    token_obtained_at: "{{ extracted_token_obtained_at.stdout | trim }}"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
+    - extracted_runner_id is defined
+    - extracted_runner_token is defined
+    - extracted_token_obtained_at is defined
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
+
+- name: Debug extracted data from backup
+  debug:
+    msg: |
+      EXTRACTED DATA FROM BACKUP:
+      runner_id: "{{ extracted_runner_id.stdout | trim }}"
+      runner_token: "{{ extracted_runner_token.stdout | trim }}"
+      token_obtained_at: "{{ extracted_token_obtained_at.stdout | trim }}"
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_registration_result is defined
+    - legacy_registration_result.rc == 0
+    - backup_config is defined
+    - extracted_runner_id is defined
+    - extracted_runner_token is defined
+    - extracted_token_obtained_at is defined
 
 
 
@@ -259,8 +315,9 @@
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
     - backup_config is defined
-    - runner_id is defined
-    - runner_token is defined
+    - extracted_runner_id is defined
+    - extracted_runner_token is defined
+    - extracted_token_obtained_at is defined
 
 - name: Restart GitLab Runner container to apply final configuration
   docker_container:
@@ -280,8 +337,9 @@
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
     - backup_config is defined
-    - runner_id is defined
-    - runner_token is defined
+    - extracted_runner_id is defined
+    - extracted_runner_token is defined
+    - extracted_token_obtained_at is defined
 
 - name: Remove backup config.toml
   shell: docker exec {{ gitlab_runner_container_name }} rm -f /etc/gitlab-runner/config.toml.backup
@@ -291,8 +349,9 @@
     - legacy_registration_result is defined
     - legacy_registration_result.rc == 0
     - backup_config is defined
-    - runner_id is defined
-    - runner_token is defined
+    - extracted_runner_id is defined
+    - extracted_runner_token is defined
+    - extracted_token_obtained_at is defined
 
 - name: Check if runner is already registered
   shell: docker exec {{ gitlab_runner_container_name }} gitlab-runner list 2>/dev/null | grep -q "{{ gitlab_runner_name }}" || echo "not_found"
