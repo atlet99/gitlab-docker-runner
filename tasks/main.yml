@@ -207,6 +207,23 @@
   register: unregister_result
   failed_when: false
 
+- name: Wait for container to be ready before registration
+  wait_for:
+    timeout: 30
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_register_cmd is defined
+
+- name: Check container status before registration
+  shell: docker ps --filter "name={{ gitlab_runner_container_name }}" --format "{{.Status}}"
+  register: container_status
+  when: 
+    - gitlab_runner_registration_token is defined
+    - gitlab_runner_registration_token != ""
+    - legacy_register_cmd is defined
+  failed_when: false
+
 - name: Register runner using legacy method
   command: >
     docker exec {{ gitlab_runner_container_name }} gitlab-runner {{ legacy_register_cmd }}
@@ -214,6 +231,8 @@
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
+    - container_status is defined
+    - "Up" in container_status.stdout
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
 
