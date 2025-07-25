@@ -155,8 +155,6 @@
     timeout: 30
   when: gitlab_runner_registration_method == "legacy"
 
-
-
 - name: Construct legacy registration command
   ansible.builtin.set_fact:
     legacy_register_cmd: >

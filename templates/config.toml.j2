@@ -41,11 +41,12 @@ concurrent = {{ gitlab_runner_concurrent }}
 {% endif -%}
 {% endif -%}
 
-{% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
 [[runners]]
   name = "{{ gitlab_runner_name }}"
   url = "{{ gitlab_runner_url }}"
+  {% if gitlab_runner_registration_method == "modern" and gitlab_runner_token -%}
   token = "{{ gitlab_runner_token }}"
+  {% endif -%}
   executor = "docker"
 
   {% if gitlab_runner_tags -%}
@@ -177,40 +178,41 @@ concurrent = {{ gitlab_runner_concurrent }}
     {% if docker_user %}
     user = "{{ docker_user }}"
     {% endif -%}
-{% endif -%}
 
-{% if gitlab_runner_registration_method == "modern" and gitlab_runner_token and cache_type -%}
-[runners.cache]
-  Type = "{{ cache_type }}"
-  Path = "{{ cache_path }}"
-  Shared = {{ cache_shared | lower }}
+  {% if cache_type -%}
+  [runners.cache]
+    Type = "{{ cache_type }}"
+    {% if cache_path -%}
+    Path = "{{ cache_path }}"
+    {% endif -%}
+    Shared = {{ cache_shared | lower }}
 
-  {% if cache_type == "s3" -%}
-  [runners.cache.s3]
-    {% if cache_s3_server_address -%}
-    ServerAddress = "{{ cache_s3_server_address }}"
-    {% endif -%}
-    {% if cache_s3_access_key -%}
-    AccessKey = "{{ cache_s3_access_key }}"
-    {% endif -%}
-    {% if cache_s3_secret_key -%}
-    SecretKey = "{{ cache_s3_secret_key }}"
-    {% endif -%}
-    {% if cache_s3_bucket_name -%}
-    BucketName = "{{ cache_s3_bucket_name }}"
-    {% endif -%}
-    {% if cache_s3_bucket_location -%}
-    BucketLocation = "{{ cache_s3_bucket_location }}"
-    {% endif -%}
-    Insecure = {{ cache_s3_insecure | lower }}
-    {% if cache_s3_authentication_type -%}
-    AuthenticationType = "{{ cache_s3_authentication_type }}"
-    {% endif -%}
-    {% if cache_s3_server_side_encryption -%}
-    ServerSideEncryption = "{{ cache_s3_server_side_encryption }}"
-    {% endif -%}
-    {% if cache_s3_server_side_encryption_key_id -%}
-    ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"
+    {% if cache_type == "s3" -%}
+    [runners.cache.s3]
+      {% if cache_s3_server_address -%}
+      ServerAddress = "{{ cache_s3_server_address }}"
+      {% endif -%}
+      {% if cache_s3_access_key -%}
+      AccessKey = "{{ cache_s3_access_key }}"
+      {% endif -%}
+      {% if cache_s3_secret_key -%}
+      SecretKey = "{{ cache_s3_secret_key }}"
+      {% endif -%}
+      {% if cache_s3_bucket_name -%}
+      BucketName = "{{ cache_s3_bucket_name }}"
+      {% endif -%}
+      {% if cache_s3_bucket_location -%}
+      BucketLocation = "{{ cache_s3_bucket_location }}"
+      {% endif -%}
+      Insecure = {{ cache_s3_insecure | lower }}
+      {% if cache_s3_authentication_type -%}
+      AuthenticationType = "{{ cache_s3_authentication_type }}"
+      {% endif -%}
+      {% if cache_s3_server_side_encryption -%}
+      ServerSideEncryption = "{{ cache_s3_server_side_encryption }}"
+      {% endif -%}
+      {% if cache_s3_server_side_encryption_key_id -%}
+      ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"
+      {% endif -%}
     {% endif -%}
   {% endif -%}
-{% endif -%}
