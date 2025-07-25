@@ -215,14 +215,7 @@
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
 
-- name: Check container status before registration
-  shell: docker ps --filter "name={{ gitlab_runner_container_name }}" --filter "status=running" --format "table {{.Names}}\t{{.Status}}"
-  register: container_status
-  when:
-    - gitlab_runner_registration_token is defined
-    - gitlab_runner_registration_token != ""
-    - legacy_register_cmd is defined
-  failed_when: false
+
 
 - name: Register runner using legacy method
   command: >
@@ -231,8 +224,6 @@
     - gitlab_runner_registration_token is defined
     - gitlab_runner_registration_token != ""
     - legacy_register_cmd is defined
-    - container_status is defined
-    - "container_status.stdout_lines | length > 0"
   register: legacy_registration_result
   failed_when: legacy_registration_result.rc != 0
 
