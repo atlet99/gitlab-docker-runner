@@ -226,18 +226,10 @@ docker_service_cpu_shares: ""
 docker_service_cpus: ""
 # Service GPUs
 docker_service_gpus: ""
-# Allowed Docker images
-docker_allowed_images: []
-# Allowed pull policies
-docker_allowed_pull_policies: ["if-not-present", "always"]
-# Allowed Docker services
-docker_allowed_services: []
 # Tmpfs mounts for containers
 docker_tmpfs: {}
 # Tmpfs mounts for services
 docker_services_tmpfs: {}
-# Sysctls for containers
-docker_sysctls: {}
 # Helper image flavor
 docker_helper_image_flavor: "alpine"
 # Auto-set helper image architecture and OS
