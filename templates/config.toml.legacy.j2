@@ -385,24 +385,7 @@ connection_max_age = "{{ gitlab_runner_connection_max_age }}"
     network_mtu = {{ docker_network_mtu }}
     {% endif -%}
 
-    {% if docker_services and docker_services|length > 0 -%}
-    {% for service in docker_services -%}
-    [[runners.docker.services]]
-      name = "{{ service.name }}"
-      {% if service.alias -%}
-      alias = "{{ service.alias }}"
-      {% endif -%}
-      {% if service.entrypoint -%}
-      entrypoint = {{ service.entrypoint | to_nice_json }}
-      {% endif -%}
-      {% if service.command -%}
-      command = {{ service.command | to_nice_json }}
-      {% endif -%}
-      {% if service.environment -%}
-      environment = {{ service.environment | to_nice_json }}
-      {% endif -%}
-    {% endfor -%}
-    {% endif -%}
+
 
   {% if cache_type -%}
   [runners.cache]

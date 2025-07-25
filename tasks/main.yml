@@ -58,10 +58,12 @@
 
 - name: Generate minimal config.toml template for legacy registration method
   ansible.builtin.template:
-    src: config.toml.legacy.j2
+    src: config.toml.legacy.minimal.j2
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
   when: gitlab_runner_registration_method == "legacy"
+
+
 
 - name: Verify config file was created for legacy registration
   stat:

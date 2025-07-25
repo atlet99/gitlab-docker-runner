@@ -1,0 +1,78 @@
+# Minimal GitLab Runner configuration template for legacy registration
+# This template contains exactly one [[runners]] entry as required by --template-config
+
+# Global settings
+concurrent = {{ gitlab_runner_concurrent }}
+check_interval = {{ gitlab_runner_check_interval }}
+
+# Single runner entry as required by --template-config
+[[runners]]
+  name = "{{ gitlab_runner_name }}"
+  url = "{{ gitlab_runner_url }}"
+  executor = "docker"
+
+  {% if gitlab_runner_tags -%}
+  tags = {{ gitlab_runner_tags | to_nice_json }}
+  {% endif -%}
+
+  [runners.docker]
+    image = "{{ docker_image }}"
+    privileged = {{ docker_privileged | lower }}
+    volumes = {{ docker_volumes | to_nice_json }}
+
+    {% if not runner_network_per_build -%}
+    {% if docker_use_host_network -%}
+    network_mode = "host"
+    {% else -%}
+    network_mode = "{{ docker_network_mode }}"
+    {% endif -%}
+    {% endif -%}
+
+    {% if docker_pull_policy -%}
+    pull_policy = "{{ docker_pull_policy }}"
+    {% endif -%}
+
+    {% if docker_helper_image -%}
+    helper_image = "{{ docker_helper_image }}"
+    {% endif -%}
+
+    {% if docker_extra_hosts and docker_extra_hosts|length > 0 %}
+    extra_hosts = {{ docker_extra_hosts | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_dns and docker_dns|length > 0 %}
+    dns = {{ docker_dns | to_nice_json }}
+    {% endif -%}
+
+    {% if docker_dns_search and docker_dns_search|length > 0 %}
+    dns_search = {{ docker_dns_search | to_nice_json }}
+    {% endif -%}
+
+  {% if cache_type -%}
+  [runners.cache]
+    Type = "{{ cache_type }}"
+    {% if cache_path -%}
+    Path = "{{ cache_path }}"
+    {% endif -%}
+    Shared = {{ cache_shared | lower }}
+
+    {% if cache_type == "s3" -%}
+    [runners.cache.s3]
+      {% if cache_s3_server_address -%}
+      ServerAddress = "{{ cache_s3_server_address }}"
+      {% endif -%}
+      {% if cache_s3_access_key -%}
+      AccessKey = "{{ cache_s3_access_key }}"
+      {% endif -%}
+      {% if cache_s3_secret_key -%}
+      SecretKey = "{{ cache_s3_secret_key }}"
+      {% endif -%}
+      {% if cache_s3_bucket_name -%}
+      BucketName = "{{ cache_s3_bucket_name }}"
+      {% endif -%}
+      {% if cache_s3_bucket_location -%}
+      BucketLocation = "{{ cache_s3_bucket_location }}"
+      {% endif -%}
+      Insecure = {{ cache_s3_insecure | lower }}
+    {% endif -%}
+  {% endif -%} 
