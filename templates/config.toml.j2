@@ -28,7 +28,7 @@ shutdown_timeout = {{ gitlab_runner_shutdown_timeout }}
 
 concurrent = {{ gitlab_runner_concurrent }}
 
-{% if session_server_listen_address or session_server_advertise_address or session_server_timeout -%}
+{% if session_server_listen_address or session_server_advertise_address or session_server_session_timeout -%}
 [session_server]
 {% if session_server_listen_address -%}
   listen_address = "{{ session_server_listen_address }}"
@@ -36,8 +36,8 @@ concurrent = {{ gitlab_runner_concurrent }}
 {% if session_server_advertise_address -%}
   advertise_address = "{{ session_server_advertise_address }}"
 {% endif -%}
-{% if session_server_timeout -%}
-  session_timeout = {{ session_server_timeout }}
+{% if session_server_session_timeout -%}
+session_timeout = {{ session_server_session_timeout }}
 {% endif -%}
 {% endif -%}
 
