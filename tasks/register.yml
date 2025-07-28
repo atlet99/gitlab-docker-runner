@@ -12,8 +12,21 @@
     _auth_mode: "legacy"
   when: not gitlab_runner_unified_logic_enabled | bool
 
+- name: Debug authentication mode determination
+  debug:
+    msg: |
+      Authentication mode determination:
+      - gitlab_runner_unified_logic_enabled: {{ gitlab_runner_unified_logic_enabled | default('true') }}
+      - gitlab_runner_token length: {{ (gitlab_runner_token | default('')) | length }}
+      - gitlab_runner_registration_token length: {{ (gitlab_runner_registration_token | default('')) | length }}
+      - _auth_mode: {{ _auth_mode }}
+
 # ---------- LEGACY (registration_token) ----------
 - block:
+    - name: Debug legacy mode
+      debug:
+        msg: "Using LEGACY mode with registration_token: {{ gitlab_runner_registration_token }}"
+    
     - name: Check GitLab URL accessibility for legacy registration
       uri:
         url: "{{ gitlab_runner_url }}"
@@ -124,12 +137,26 @@
 
 # ---------- MODERN (token already exists) ----------
 - block:
+    - name: Debug modern mode
+      debug:
+        msg: "Using MODERN mode with token: {{ gitlab_runner_token }}"
+    
     - name: Mirror modern token variables to unified names
       set_fact:
         extracted_runner_token: "{{ gitlab_runner_token }}"
   when: _auth_mode == 'modern'
 
 # ---------- VALIDATION ----------
+- name: Debug token status
+  debug:
+    msg: |
+      Token status:
+      - _auth_mode: {{ _auth_mode }}
+      - extracted_runner_token is defined: {{ extracted_runner_token is defined }}
+      - extracted_runner_token: "{{ extracted_runner_token | default('NOT SET') }}"
+      - gitlab_runner_token: "{{ gitlab_runner_token | default('NOT SET') }}"
+      - gitlab_runner_registration_token: "{{ gitlab_runner_registration_token | default('NOT SET') }}"
+
 - name: Check that token was obtained
   fail:
     msg: "Failed to obtain token for runner. Please check registration parameters."
