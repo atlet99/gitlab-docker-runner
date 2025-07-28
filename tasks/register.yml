@@ -114,11 +114,23 @@
               --url {{ gitlab_runner_url }}
               --registration-token {{ gitlab_runner_registration_token }}
               --name {{ gitlab_runner_name }}
-              --executor docker
-              --docker-image alpine:latest
+              --executor shell
               --config /etc/gitlab-runner/config.tmp.toml
           register: _cli_reg
           failed_when: false
+
+        - name: Debug CLI command execution
+          community.docker.docker_container_exec:
+            container: "{{ gitlab_runner_container_name }}-temp"
+            command: ls -la /etc/gitlab-runner/
+          register: _debug_ls
+          failed_when: false
+
+        - name: Debug container filesystem
+          debug:
+            msg: |
+              Container filesystem debug:
+              {{ _debug_ls.stdout | default('NO OUTPUT') }}
 
         - name: Debug CLI registration result
           debug:
