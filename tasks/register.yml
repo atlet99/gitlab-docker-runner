@@ -61,6 +61,8 @@
         status_code: 201
         validate_certs: true
         timeout: "{{ gitlab_runner_api_timeout }}"
+        headers:
+          PRIVATE-TOKEN: "{{ gitlab_runner_personal_access_token | default('') }}"
       register: gl_runner_reg
       failed_when: false
       when: gitlab_runner_api_first_enabled | bool
@@ -71,6 +73,15 @@
         extracted_runner_token: "{{ gl_runner_reg.json.token }}"
         extracted_token_obtained_at: "{{ (gl_runner_reg.json.token_expires_at | default('')) }}"
       when: gl_runner_reg.status == 201
+
+    - name: Debug API registration result
+      debug:
+        msg: |
+          API registration result:
+          - gl_runner_reg is defined: {{ gl_runner_reg is defined }}
+          - gl_runner_reg.status: {{ gl_runner_reg.status | default('NOT SET') }}
+          - extracted_runner_token: {{ extracted_runner_token | default('NOT SET') }}
+      when: gl_runner_reg is defined
 
     # Fallback via CLI if API is unavailable
     - block:
@@ -135,6 +146,14 @@
 
   when: _auth_mode == 'legacy'
 
+- name: Debug legacy block condition
+  debug:
+    msg: |
+      Legacy block condition check:
+      - _auth_mode: {{ _auth_mode }}
+      - _auth_mode == 'legacy': {{ _auth_mode == 'legacy' }}
+      - gitlab_runner_registration_token: "{{ gitlab_runner_registration_token | default('NOT SET') }}"
+
 # ---------- MODERN (token already exists) ----------
 - block:
     - name: Debug modern mode
@@ -145,6 +164,14 @@
       set_fact:
         extracted_runner_token: "{{ gitlab_runner_token }}"
   when: _auth_mode == 'modern'
+
+- name: Debug modern block condition
+  debug:
+    msg: |
+      Modern block condition check:
+      - _auth_mode: {{ _auth_mode }}
+      - _auth_mode == 'modern': {{ _auth_mode == 'modern' }}
+      - gitlab_runner_token: "{{ gitlab_runner_token | default('NOT SET') }}"
 
 # ---------- VALIDATION ----------
 - name: Debug token status

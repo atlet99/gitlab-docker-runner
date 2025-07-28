@@ -75,6 +75,11 @@ gitlab_runner_token: ""
 # This token is used to register the runner and obtain a permanent token
 gitlab_runner_registration_token: ""
 
+# GitLab Personal Access Token (for API registration)
+# Required for API-first registration approach
+# Obtained from GitLab Settings → Access Tokens (with 'api' scope)
+gitlab_runner_personal_access_token: ""
+
 # Runner name (used in both modern and legacy approaches)
 gitlab_runner_name: "my-runner"
 

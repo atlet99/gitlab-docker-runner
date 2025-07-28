@@ -1,0 +1,132 @@
+---
+# Example with proper token usage for API registration
+# Shows how to use both Registration Token and Personal Access Token
+
+- name: Deploy GitLab Runner with API tokens
+  hosts: all
+  become: true
+  vars:
+    # Basic settings
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_name: "api-token-runner"
+    gitlab_runner_version: "latest"
+    runner_directory: "/var/lib/gitlab-runner"
+    gitlab_runner_container_name: "gitlab-runner-api-token"
+    
+    # Docker settings
+    docker_image: "alpine:latest"
+    docker_privileged: false
+    docker_volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/cache:/cache"
+    
+    # Network settings
+    docker_use_host_network: true
+
+  tasks:
+    # Example 1: Using both Registration Token and Personal Access Token
+    - name: Deploy with API registration
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Registration Token (from GitLab Admin Area)
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') }}"
+        
+        # Personal Access Token (for API access)
+        gitlab_runner_personal_access_token: "{{ lookup('env', 'GITLAB_PERSONAL_ACCESS_TOKEN') }}"
+        
+        # Runner settings
+        gitlab_runner_tags: ["api-token", "docker", "unified"]
+        gitlab_runner_concurrent: 2
+        gitlab_runner_run_untagged: true
+        gitlab_runner_locked: false
+        gitlab_runner_access_level: "not_protected"
+        
+        # API settings
+        gitlab_runner_api_first_enabled: true
+        gitlab_runner_cli_fallback_enabled: true
+        gitlab_runner_api_timeout: 60
+        gitlab_runner_validate_url: true
+      when: 
+        - lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined
+        - lookup('env', 'GITLAB_PERSONAL_ACCESS_TOKEN') is defined
+
+    # Example 2: Using only CLI registration (no API token needed)
+    - name: Deploy with CLI-only registration
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Only Registration Token needed
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') }}"
+        
+        # Disable API-first approach
+        gitlab_runner_api_first_enabled: false
+        gitlab_runner_cli_fallback_enabled: true
+        
+        # Runner settings
+        gitlab_runner_name: "cli-only-runner"
+        gitlab_runner_container_name: "gitlab-runner-cli-only"
+        gitlab_runner_tags: ["cli-only", "docker", "unified"]
+        gitlab_runner_concurrent: 2
+      when: 
+        - lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined
+        - lookup('env', 'GITLAB_PERSONAL_ACCESS_TOKEN') is not defined
+
+    # Example 3: Using existing runner token (modern approach)
+    - name: Deploy with existing runner token
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Use existing runner token (obtained after registration)
+        gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') }}"
+        
+        # Runner settings
+        gitlab_runner_name: "existing-runner"
+        gitlab_runner_container_name: "gitlab-runner-existing"
+        gitlab_runner_tags: ["existing", "docker", "unified"]
+        gitlab_runner_concurrent: 2
+      when: lookup('env', 'GITLAB_RUNNER_TOKEN') is defined
+
+  post_tasks:
+    - name: Display token information
+      debug:
+        msg: |
+          ========================================
+          TOKEN INFORMATION
+          ========================================
+          
+          For API registration, you need TWO tokens:
+          
+          1. Registration Token (from GitLab Admin Area)
+             - GitLab UI: Admin Area → Overview → Runners → Register an instance runner
+             - Or API: GET /api/v4/runners/registration-token
+             
+          2. Personal Access Token (for API access)
+             - GitLab UI: Settings → Access Tokens (with 'api' scope)
+             - Required for API-first registration
+          
+          Environment variables:
+          - GITLAB_RUNNER_REGISTRATION_TOKEN: Registration token
+          - GITLAB_PERSONAL_ACCESS_TOKEN: Personal access token (for API)
+          - GITLAB_RUNNER_TOKEN: Existing runner token (after registration)
+          
+          Examples:
+          
+          # For API registration (recommended)
+          export GITLAB_RUNNER_REGISTRATION_TOKEN="your-registration-token"
+          export GITLAB_PERSONAL_ACCESS_TOKEN="your-personal-access-token"
+          
+          # For CLI-only registration (no API token needed)
+          export GITLAB_RUNNER_REGISTRATION_TOKEN="your-registration-token"
+          
+          # For existing runner (modern approach)
+          export GITLAB_RUNNER_TOKEN="your-existing-runner-token"
+
+    - name: Check runner status
+      shell: docker ps --filter "name=gitlab-runner" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: runner_containers
+      failed_when: false
+
+    - name: Display runner status
+      debug:
+        var: runner_containers.stdout_lines 
