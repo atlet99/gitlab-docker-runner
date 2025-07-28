@@ -102,21 +102,22 @@
         - name: Run one-shot container to register (legacy CLI)
           command: >
             docker run --rm -u 0:0
-            -v {{ runner_tmp_dir }}:/etc/gitlab-runner
+            -v {{ runner_tmp_dir }}:/work
             -e TZ={{ tz }}
             {{ runner_image | default('gitlab/gitlab-runner:' ~ gitlab_runner_version) }}
             register
             --non-interactive
-            --config /etc/gitlab-runner/config.toml
+            --config /work/config.tmp.toml
             --url {{ gitlab_runner_url }}
             --registration-token {{ gitlab_runner_registration_token }}
             --name {{ gitlab_runner_name }}
             --executor docker
+            --docker-image {{ docker_image }}
             {% if _tag_list_csv %}--tag-list {{ _tag_list_csv }}{% endif %}
             --locked={{ gitlab_runner_locked | lower }}
             --run-untagged={{ gitlab_runner_run_untagged | lower }}
           register: _cli_reg
-          failed_when: false
+          failed_when: _cli_reg.rc != 0 or ('PANIC' in (_cli_reg.stderr | default('')))
 
         - name: Debug CLI registration result
           debug:
@@ -130,11 +131,11 @@
 
         - name: Check if temporary config file exists
           stat:
-            path: "{{ runner_tmp_dir }}/config.toml"
+            path: "{{ runner_tmp_dir }}/config.tmp.toml"
           register: config_file_stat
 
         - name: Show tmp config content (debug)
-          command: cat {{ runner_tmp_dir }}/config.toml
+          command: cat {{ runner_tmp_dir }}/config.tmp.toml
           register: config_content
           failed_when: false
           when: config_file_stat.stat.exists | default(false)
@@ -142,29 +143,29 @@
         - name: Debug config content
           debug:
             msg: |
-              ---- config.toml (tmp) ----
+              ---- config.tmp.toml (tmp) ----
               {{ config_content.stdout | default('FILE NOT FOUND') }}
           when: config_file_stat.stat.exists | default(false)
 
         - name: Fail if CLI didn't produce config
           fail:
-            msg: "CLI fallback did not create config.toml"
+            msg: "CLI fallback did not create config.tmp.toml"
           when: not config_file_stat.stat.exists | default(false)
 
         - name: Extract token from temporary config
-          command: awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
+          command: awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
           register: _parsed_token
           changed_when: false
           failed_when: false
 
         - name: Extract id from temporary config
-          command: awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
+          command: awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
           register: _parsed_id
           changed_when: false
           failed_when: false
 
         - name: Extract token_obtained_at from temporary config
-          command: awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
+          command: awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
           register: _parsed_obtained
           changed_when: false
           failed_when: false
