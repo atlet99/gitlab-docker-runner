@@ -85,6 +85,15 @@
 
     # Fallback via CLI if API is unavailable
     - block:
+        - name: Debug CLI fallback block
+          debug:
+            msg: |
+              CLI fallback block execution:
+              - gitlab_runner_cli_fallback_enabled: {{ gitlab_runner_cli_fallback_enabled | default('true') }}
+              - gl_runner_reg is defined: {{ gl_runner_reg is defined }}
+              - gl_runner_reg.status: {{ gl_runner_reg.status | default('NOT SET') }}
+              - Condition: {{ gitlab_runner_cli_fallback_enabled | default('true') }} and ({{ gl_runner_reg is defined }} or {{ gl_runner_reg.status | default('NOT SET') }} != 201)
+
         - name: Create temporary container for CLI registration
           community.docker.docker_container:
             name: "{{ gitlab_runner_container_name }}-temp"
@@ -110,6 +119,17 @@
           register: _cli_reg
           failed_when: false
 
+        - name: Debug CLI registration result
+          debug:
+            msg: |
+              CLI registration result:
+              - _cli_reg is defined: {{ _cli_reg is defined }}
+              - _cli_reg.failed: {{ _cli_reg.failed | default('NOT SET') }}
+              - _cli_reg.rc: {{ _cli_reg.rc | default('NOT SET') }}
+              - _cli_reg.stdout: {{ _cli_reg.stdout | default('NOT SET') }}
+              - _cli_reg.stderr: {{ _cli_reg.stderr | default('NOT SET') }}
+          when: _cli_reg is defined
+
         - name: Extract token from temporary config
           command: >
             awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_directory }}/config.tmp.toml
@@ -124,11 +144,31 @@
           changed_when: false
           failed_when: false
 
+        - name: Debug token extraction
+          debug:
+            msg: |
+              Token extraction result:
+              - _parsed_token is defined: {{ _parsed_token is defined }}
+              - _parsed_token.failed: {{ _parsed_token.failed | default('NOT SET') }}
+              - _parsed_token.stdout: "{{ _parsed_token.stdout | default('NOT SET') }}"
+              - _parsed_id is defined: {{ _parsed_id is defined }}
+              - _parsed_id.failed: {{ _parsed_id.failed | default('NOT SET') }}
+              - _parsed_id.stdout: "{{ _parsed_id.stdout | default('NOT SET') }}"
+              - Condition for set_fact: {{ (_parsed_token.stdout is defined and _parsed_token.stdout != "") }}
+          when: _parsed_token is defined
+
         - name: Set extracted runner variables (CLI fallback)
           set_fact:
             extracted_runner_token: "{{ _parsed_token.stdout | trim }}"
             extracted_runner_id: "{{ _parsed_id.stdout | trim }}"
           when: _parsed_token.stdout is defined and _parsed_token.stdout != ""
+
+        - name: Debug extracted variables after CLI fallback
+          debug:
+            msg: |
+              Extracted variables after CLI fallback:
+              - extracted_runner_token: "{{ extracted_runner_token | default('NOT SET') }}"
+              - extracted_runner_id: "{{ extracted_runner_id | default('NOT SET') }}"
 
         - name: Remove temporary config
           file:
