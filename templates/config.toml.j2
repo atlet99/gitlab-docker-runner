@@ -7,7 +7,7 @@ log_level = "{{ gitlab_runner_log_level }}"
 log_format = "{{ gitlab_runner_log_format }}"
 {% endif -%}
 {% if gitlab_runner_check_interval is defined -%}
-check_interval = {{ gitlab_runner_check_interval }}
+check_interval = {{ gitlab_runner_check_interval | int }}
 {% endif -%}
 {% if gitlab_runner_sentry_dsn -%}
 sentry_dsn = "{{ gitlab_runner_sentry_dsn }}"
@@ -19,44 +19,43 @@ connection_max_age = "{{ gitlab_runner_connection_max_age }}"
 listen_address = "{{ gitlab_runner_listen_address }}"
 {% endif -%}
 {% if gitlab_runner_shutdown_timeout is defined -%}
-shutdown_timeout = {{ gitlab_runner_shutdown_timeout }}
+shutdown_timeout = {{ gitlab_runner_shutdown_timeout | int }}
 {% endif -%}
 
-concurrent = {{ gitlab_runner_concurrent }}
+concurrent = {{ gitlab_runner_concurrent | int }}
 
-{% if session_server_listen_address or session_server_advertise_address or session_server_session_timeout -%}
+{# ---------- session_server ---------- #}
+{% if session_server_listen_address or session_server_advertise_address or session_server_session_timeout is defined -%}
 [session_server]
-{% if session_server_listen_address -%}
+{%   if session_server_listen_address -%}
   listen_address = "{{ session_server_listen_address }}"
-{% endif -%}
-{% if session_server_advertise_address -%}
+{%   endif -%}
+{%   if session_server_advertise_address -%}
   advertise_address = "{{ session_server_advertise_address }}"
-{% endif -%}
-{% if session_server_session_timeout is defined -%}
-  session_timeout = {{ session_server_session_timeout }}
-{% endif -%}
+{%   endif -%}
+{%   if session_server_session_timeout is defined -%}
+  session_timeout = {{ session_server_session_timeout | int }}
+{%   endif -%}
 {% endif -%}
 
 [[runners]]
   name = "{{ gitlab_runner_name }}"
   url  = "{{ gitlab_runner_url }}"
 
-{# ---------- MODERN (готовый token) ---------- #}
-{% if gitlab_runner_token and (gitlab_runner_registration_token | default('') | length == 0) -%}
-  token = "{{ gitlab_runner_token }}"
-{% endif -%}
-
-{# ---------- LEGACY (получили token/id при регистрации) ---------- #}
-{% if gitlab_runner_registration_token and (extracted_runner_id is defined and extracted_runner_id) -%}
-  id = {{ extracted_runner_id | trim }}
-{% endif -%}
-{% if gitlab_runner_registration_token and (extracted_runner_token is defined and extracted_runner_token) -%}
-  token = "{{ extracted_runner_token | trim }}"
-{% endif -%}
-{% if gitlab_runner_registration_token and (extracted_token_obtained_at is defined and extracted_token_obtained_at) -%}
-  token_obtained_at = "{{ extracted_token_obtained_at | trim }}"
-{% endif -%}
-{% if gitlab_runner_registration_token -%}
+{# ---------- AUTH BLOCK (mutually exclusive) ---------- #}
+{% set use_reg = gitlab_runner_registration_token | default('') | length > 0 %}
+{% if not use_reg and gitlab_runner_token %}
+  token = "{{ gitlab_runner_token | trim | replace('\n','') }}"
+{% elif use_reg %}
+{%   if extracted_runner_id is defined and extracted_runner_id %}
+  id = {{ extracted_runner_id | trim | replace('\n','') | int }}
+{%   endif -%}
+{%   if extracted_runner_token is defined and extracted_runner_token %}
+  token = "{{ extracted_runner_token | trim | replace('\n','') }}"
+{%   endif -%}
+{%   if extracted_token_obtained_at is defined and extracted_token_obtained_at %}
+  token_obtained_at = "{{ extracted_token_obtained_at | trim | replace('\n','') }}"
+{%   endif -%}
   token_expires_at = "0001-01-01T00:00:00Z"
 {% endif -%}
 
@@ -68,16 +67,16 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if runner_feature_flags -%}
   [runners.feature_flags]
-{% for ff_name, ff_value in runner_feature_flags.items() -%}
+{%   for ff_name, ff_value in runner_feature_flags.items() -%}
     {{ ff_name }} = {{ ff_value | lower }}
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
-{% if (gitlab_runner_output_limit | default(0) | int) > 0 -%}
+{% if gitlab_runner_output_limit | default(0) | int > 0 -%}
   output_limit = {{ (gitlab_runner_output_limit | int) // 1024 }}
 {% endif -%}
 {% if gitlab_runner_request_concurrency is defined -%}
-  request_concurrency = {{ gitlab_runner_request_concurrency }}
+  request_concurrency = {{ gitlab_runner_request_concurrency | int }}
 {% endif -%}
 
 {% if gitlab_runner_pre_get_sources_script -%}
@@ -109,13 +108,13 @@ concurrent = {{ gitlab_runner_concurrent }}
   clone_url = "{{ gitlab_runner_clone_url }}"
 {% endif -%}
 {% if gitlab_runner_unhealthy_requests_limit -%}
-  unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit }}
+  unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit | int }}
 {% endif -%}
 {% if gitlab_runner_unhealthy_interval -%}
   unhealthy_interval = "{{ gitlab_runner_unhealthy_interval }}"
 {% endif -%}
 {% if gitlab_runner_job_status_final_update_retry_limit -%}
-  job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit }}
+  job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit | int }}
 {% endif -%}
 
 {% if gitlab_runner_custom_build_dir_enabled is defined -%}
@@ -131,7 +130,7 @@ concurrent = {{ gitlab_runner_concurrent }}
 
   [runners.docker]
     tls_verify = false
-    image      = "{{ docker_image }}"
+    image = "{{ docker_image }}"
     privileged = {{ docker_privileged | lower }}
     disable_entrypoint_overwrite = false
     oom_kill_disable = {{ docker_oom_kill_disable | lower }}
@@ -142,21 +141,21 @@ concurrent = {{ gitlab_runner_concurrent }}
 {% endif -%}
 
 {% if not runner_network_per_build -%}
-{% if docker_use_host_network -%}
+{%   if docker_use_host_network -%}
     network_mode = "host"
-{% else -%}
+{%   else -%}
     network_mode = "{{ docker_network_mode }}"
-{% endif -%}
+{%   endif -%}
 {% endif -%}
 
 {% if docker_timeout -%}
     docker_timeout = "{{ docker_timeout }}"
 {% endif -%}
 {% if docker_pull_timeout -%}
-    pull_timeout  = {{ docker_pull_timeout }}
+    pull_timeout  = {{ docker_pull_timeout | int }}
 {% endif -%}
 {% if docker_retry -%}
-    docker_retry   = {{ docker_retry }}
+    docker_retry  = {{ docker_retry | int }}
 {% endif -%}
 {% if docker_pull_policy -%}
     pull_policy  = ["{{ docker_pull_policy }}"]
@@ -203,7 +202,7 @@ concurrent = {{ gitlab_runner_concurrent }}
     disable_cache = {{ docker_disable_cache | lower }}
 {% endif -%}
 {% if docker_wait_for_services_timeout -%}
-    wait_for_services_timeout = {{ docker_wait_for_services_timeout }}
+    wait_for_services_timeout = {{ docker_wait_for_services_timeout | int }}
 {% endif -%}
 {% if docker_extra_hosts -%}
     extra_hosts = {{ docker_extra_hosts | to_nice_json }}
@@ -211,9 +210,9 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if docker_sysctls -%}
     [runners.docker.sysctls]
-{% for sysctl_key, sysctl_value in docker_sysctls.items() -%}
+{%   for sysctl_key, sysctl_value in docker_sysctls.items() -%}
       "{{ sysctl_key }}" = "{{ sysctl_value }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_dns -%}
@@ -252,13 +251,13 @@ concurrent = {{ gitlab_runner_concurrent }}
     memory_reservation = "{{ docker_memory_reservation }}"
 {% endif -%}
 {% if docker_cpu_shares -%}
-    cpu_shares = {{ docker_cpu_shares }}
+    cpu_shares = {{ docker_cpu_shares | int }}
 {% endif -%}
 {% if docker_cgroup_parent -%}
     cgroup_parent = "{{ docker_cgroup_parent }}"
 {% endif -%}
 {% if docker_oom_score_adjust -%}
-    oom_score_adjust = {{ docker_oom_score_adjust }}
+    oom_score_adjust = {{ docker_oom_score_adjust | int }}
 {% endif -%}
 {% if docker_services_security_opt -%}
     services_security_opt = {{ docker_services_security_opt | to_nice_json }}
@@ -278,9 +277,9 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if docker_volume_driver_ops -%}
     [runners.docker.volume_driver_ops]
-{% for key, value in docker_volume_driver_ops.items() -%}
+{%   for key, value in docker_volume_driver_ops.items() -%}
       "{{ key }}" = "{{ value }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_cache_dir -%}
@@ -299,7 +298,7 @@ concurrent = {{ gitlab_runner_concurrent }}
     links = {{ docker_links | to_nice_json }}
 {% endif -%}
 {% if docker_services_limit is not none -%}
-    services_limit = {{ docker_services_limit }}
+    services_limit = {{ docker_services_limit | int }}
 {% endif -%}
 
 {% if docker_service_memory -%}
@@ -318,7 +317,7 @@ concurrent = {{ gitlab_runner_concurrent }}
     service_cpuset_cpus = "{{ docker_service_cpuset_cpus }}"
 {% endif -%}
 {% if docker_service_cpu_shares -%}
-    service_cpu_shares = {{ docker_service_cpu_shares }}
+    service_cpu_shares = {{ docker_service_cpu_shares | int }}
 {% endif -%}
 {% if docker_service_cpus -%}
     service_cpus = "{{ docker_service_cpus }}"
@@ -339,16 +338,16 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if docker_tmpfs -%}
     [runners.docker.tmpfs]
-{% for tmpfs_path, tmpfs_options in docker_tmpfs.items() -%}
+{%   for tmpfs_path, tmpfs_options in docker_tmpfs.items() -%}
       "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_services_tmpfs -%}
     [runners.docker.services_tmpfs]
-{% for tmpfs_path, tmpfs_options in docker_services_tmpfs.items() -%}
+{%   for tmpfs_path, tmpfs_options in docker_services_tmpfs.items() -%}
       "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_helper_image_autoset_arch_and_os -%}
@@ -357,9 +356,9 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if docker_container_labels -%}
     [runners.docker.container_labels]
-{% for label_key, label_value in docker_container_labels.items() -%}
+{%   for label_key, label_value in docker_container_labels.items() -%}
       "{{ label_key }}" = "{{ label_value }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_enable_ipv6 -%}
@@ -368,118 +367,119 @@ concurrent = {{ gitlab_runner_concurrent }}
 
 {% if docker_ulimit -%}
     [runners.docker.ulimit]
-{% for ulimit_name, ulimit_value in docker_ulimit.items() -%}
+{%   for ulimit_name, ulimit_value in docker_ulimit.items() -%}
       "{{ ulimit_name }}" = "{{ ulimit_value }}"
-{% endfor -%}
+{%   endfor -%}
 {% endif -%}
 
 {% if docker_network_mtu -%}
-    network_mtu = {{ docker_network_mtu }}
+    network_mtu = {{ docker_network_mtu | int }}
 {% endif -%}
 
 {% if docker_services and docker_services|length > 0 -%}
-{% for service in docker_services -%}
+{%   for service in docker_services -%}
     [[runners.docker.services]]
       name = "{{ service.name }}"
-{% if service.alias -%}
+{%     if service.alias -%}
       alias = "{{ service.alias }}"
-{% endif -%}
-{% if service.entrypoint -%}
+{%     endif -%}
+{%     if service.entrypoint -%}
       entrypoint = {{ service.entrypoint | to_nice_json }}
-{% endif -%}
-{% if service.command -%}
+{%     endif -%}
+{%     if service.command -%}
       command    = {{ service.command    | to_nice_json }}
-{% endif -%}
-{% if service.environment -%}
+{%     endif -%}
+{%     if service.environment -%}
       environment = {{ service.environment | to_nice_json }}
-{% endif -%}
-{% endfor -%}
+{%     endif -%}
+{%   endfor -%}
 {% endif -%}
 
+{# ---------- CACHE ---------- #}
 {% if cache_type -%}
   [runners.cache]
     Type = "{{ cache_type }}"
-{% if cache_path -%}
+{%   if cache_path -%}
     Path = "{{ cache_path }}"
-{% endif -%}
+{%   endif -%}
     Shared = {{ cache_shared | lower }}
-{% if cache_max_uploaded_archive_size -%}
-    MaxUploadedArchiveSize = {{ cache_max_uploaded_archive_size }}
-{% endif -%}
+{%   if cache_max_uploaded_archive_size -%}
+    MaxUploadedArchiveSize = {{ cache_max_uploaded_archive_size | int }}
+{%   endif -%}
 
-{% if cache_type == "s3" -%}
+{%   if cache_type == "s3" -%}
     [runners.cache.s3]
-{% if cache_s3_server_address -%}
+{%     if cache_s3_server_address -%}
       ServerAddress = "{{ cache_s3_server_address }}"
-{% endif -%}
-{% if cache_s3_access_key -%}
+{%     endif -%}
+{%     if cache_s3_access_key -%}
       AccessKey = "{{ cache_s3_access_key }}"
-{% endif -%}
-{% if cache_s3_secret_key -%}
+{%     endif -%}
+{%     if cache_s3_secret_key -%}
       SecretKey = "{{ cache_s3_secret_key }}"
-{% endif -%}
-{% if cache_s3_bucket_name -%}
+{%     endif -%}
+{%     if cache_s3_bucket_name -%}
       BucketName = "{{ cache_s3_bucket_name }}"
-{% endif -%}
-{% if cache_s3_bucket_location -%}
+{%     endif -%}
+{%     if cache_s3_bucket_location -%}
       BucketLocation = "{{ cache_s3_bucket_location }}"
-{% endif -%}
+{%     endif -%}
       Insecure = {{ cache_s3_insecure | lower }}
-{% if cache_s3_authentication_type -%}
+{%     if cache_s3_authentication_type -%}
       AuthenticationType = "{{ cache_s3_authentication_type }}"
-{% endif -%}
-{% if cache_s3_server_side_encryption -%}
+{%     endif -%}
+{%     if cache_s3_server_side_encryption -%}
       ServerSideEncryption = "{{ cache_s3_server_side_encryption }}"
-{% endif -%}
-{% if cache_s3_server_side_encryption_key_id -%}
+{%     endif -%}
+{%     if cache_s3_server_side_encryption_key_id -%}
       ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"
-{% endif -%}
-{% if cache_s3_dual_stack is defined -%}
+{%     endif -%}
+{%     if cache_s3_dual_stack is defined -%}
       DualStack = {{ cache_s3_dual_stack | lower }}
-{% endif -%}
-{% if cache_s3_accelerate -%}
+{%     endif -%}
+{%     if cache_s3_accelerate -%}
       Accelerate = {{ cache_s3_accelerate | lower }}
-{% endif -%}
-{% if cache_s3_path_style is defined -%}
+{%     endif -%}
+{%     if cache_s3_path_style is defined -%}
       PathStyle = {{ cache_s3_path_style | lower }}
-{% endif -%}
-{% if cache_s3_role_arn -%}
+{%     endif -%}
+{%     if cache_s3_role_arn -%}
       RoleARN = "{{ cache_s3_role_arn }}"
-{% endif -%}
-{% if cache_s3_upload_role_arn -%}
+{%     endif -%}
+{%     if cache_s3_upload_role_arn -%}
       UploadRoleARN = "{{ cache_s3_upload_role_arn }}"
-{% endif -%}
-{% endif -%}
+{%     endif -%}
+{%   endif -%}
 
-{% if cache_type == "gcs" -%}
+{%   if cache_type == "gcs" -%}
     [runners.cache.gcs]
-{% if cache_gcs_access_id -%}
+{%     if cache_gcs_access_id -%}
       AccessID = "{{ cache_gcs_access_id }}"
-{% endif -%}
-{% if cache_gcs_private_key -%}
+{%     endif -%}
+{%     if cache_gcs_private_key -%}
       PrivateKey = "{{ cache_gcs_private_key }}"
-{% endif -%}
-{% if cache_gcs_credentials_file -%}
+{%     endif -%}
+{%     if cache_gcs_credentials_file -%}
       CredentialsFile = "{{ cache_gcs_credentials_file }}"
-{% endif -%}
-{% if cache_gcs_bucket_name -%}
+{%     endif -%}
+{%     if cache_gcs_bucket_name -%}
       BucketName = "{{ cache_gcs_bucket_name }}"
-{% endif -%}
-{% endif -%}
+{%     endif -%}
+{%   endif -%}
 
-{% if cache_type == "azure" -%}
+{%   if cache_type == "azure" -%}
     [runners.cache.azure]
-{% if cache_azure_account_name -%}
+{%     if cache_azure_account_name -%}
       AccountName = "{{ cache_azure_account_name }}"
-{% endif -%}
-{% if cache_azure_account_key -%}
+{%     endif -%}
+{%     if cache_azure_account_key -%}
       AccountKey = "{{ cache_azure_account_key }}"
-{% endif -%}
-{% if cache_azure_container_name -%}
+{%     endif -%}
+{%     if cache_azure_container_name -%}
       ContainerName = "{{ cache_azure_container_name }}"
-{% endif -%}
-{% if cache_azure_storage_domain -%}
+{%     endif -%}
+{%     if cache_azure_storage_domain -%}
       StorageDomain = "{{ cache_azure_storage_domain }}"
-{% endif -%}
-{% endif -%}
+{%     endif -%}
+{%   endif -%}
 {% endif -%}
