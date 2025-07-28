@@ -1,0 +1,138 @@
+---
+# Test playbook for unified GitLab Runner registration logic
+# Demonstrates automatic mode detection
+
+- name: Test unified GitLab Runner registration logic
+  hosts: localhost
+  become: true
+  gather_facts: false
+  
+  vars:
+    # Basic settings
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_name: "test-unified-runner"
+    gitlab_runner_version: "latest"
+    runner_directory: "/tmp/gitlab-runner-test"
+    gitlab_runner_container_name: "gitlab-runner-test"
+    
+    # Docker settings
+    docker_image: "alpine:latest"
+    docker_privileged: false
+    docker_volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/tmp/cache:/cache"
+    
+    # Network settings
+    docker_use_host_network: true
+    
+    # Logging
+    gitlab_runner_log_level: "debug"
+    gitlab_runner_log_format: "text"
+
+  tasks:
+    - name: Check available tokens
+      debug:
+        msg: |
+          Available tokens:
+          - GITLAB_RUNNER_TOKEN: {{ lookup('env', 'GITLAB_RUNNER_TOKEN') | default('NOT SET') }}
+          - GITLAB_RUNNER_REGISTRATION_TOKEN: {{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') | default('NOT SET') }}
+
+    - name: Determine registration mode
+      set_fact:
+        test_auth_mode: "{{ 'modern' if (lookup('env', 'GITLAB_RUNNER_TOKEN') | default('')) | length > 0 else 'legacy' }}"
+
+    - name: Display selected mode
+      debug:
+        msg: "Selected mode: {{ test_auth_mode }}"
+
+    # Test modern mode
+    - name: Test modern mode (if token is available)
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') | default('') }}"
+        gitlab_runner_name: "test-modern-runner"
+        gitlab_runner_tags: ["test", "modern", "unified"]
+        gitlab_runner_concurrent: 1
+      when: lookup('env', 'GITLAB_RUNNER_TOKEN') is defined and lookup('env', 'GITLAB_RUNNER_TOKEN') != ""
+
+    # Test legacy mode
+    - name: Test legacy mode (if registration_token is available)
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') | default('') }}"
+        gitlab_runner_name: "test-legacy-runner"
+        gitlab_runner_tags: ["test", "legacy", "unified"]
+        gitlab_runner_concurrent: 1
+        gitlab_runner_run_untagged: true
+        gitlab_runner_locked: false
+        gitlab_runner_access_level: "not_protected"
+      when: lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined and lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') != ""
+
+    # Test without tokens
+    - name: Test without tokens
+      debug:
+        msg: |
+          WARNING: No tokens are set!
+          
+          To test, set one of the environment variables:
+          - GITLAB_RUNNER_TOKEN (for modern mode)
+          - GITLAB_RUNNER_REGISTRATION_TOKEN (for legacy mode)
+          
+          Example:
+          export GITLAB_RUNNER_TOKEN="your-token"
+          # or
+          export GITLAB_RUNNER_REGISTRATION_TOKEN="your-registration-token"
+      when: 
+        - lookup('env', 'GITLAB_RUNNER_TOKEN') is not defined or lookup('env', 'GITLAB_RUNNER_TOKEN') == ""
+        - lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is not defined or lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') == ""
+
+  post_tasks:
+    - name: Check status of test containers
+      shell: docker ps --filter "name=gitlab-runner-test" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: test_containers
+      failed_when: false
+
+    - name: Display test container status
+      debug:
+        var: test_containers.stdout_lines
+
+    - name: Check container logs
+      shell: docker logs {{ item }} 2>&1 | tail -10
+      loop: "{{ test_containers.stdout_lines | select('match', '^gitlab-runner-test') | list | map('regex_replace', '^([^\\s]+).*', '\\1') | list }}"
+      register: container_logs
+      failed_when: false
+
+    - name: Display container logs
+      debug:
+        var: container_logs.results
+
+    - name: Cleanup test containers
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "gitlab-runner-test"
+        - "gitlab-runner-test-temp"
+      ignore_errors: true
+
+    - name: Cleanup test directory
+      file:
+        path: "{{ runner_directory }}"
+        state: absent
+      ignore_errors: true
+
+    - name: Test completed
+      debug:
+        msg: |
+          ========================================
+          UNIFIED LOGIC TEST COMPLETED
+          ========================================
+          
+          Results:
+          - Mode: {{ test_auth_mode }}
+          - Containers: {{ test_containers.stdout_lines | length }}
+          - Status: {{ 'SUCCESS' if test_containers.stdout_lines | length > 0 else 'FAILED' }}
+          
+          See logs above for detailed information. 

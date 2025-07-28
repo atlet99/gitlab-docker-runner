@@ -1,0 +1,139 @@
+---
+# Advanced example with unified registration logic settings
+# Demonstrates fine-grained control over the unified logic
+
+- name: Deploy GitLab Runner with advanced unified settings
+  hosts: all
+  become: true
+  vars:
+    # Basic settings
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_name: "advanced-unified-runner"
+    gitlab_runner_version: "latest"
+    runner_directory: "/var/lib/gitlab-runner"
+    gitlab_runner_container_name: "gitlab-runner-advanced-unified"
+    
+    # Docker settings
+    docker_image: "alpine:latest"
+    docker_privileged: false
+    docker_volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/cache:/cache"
+    
+    # Network settings
+    docker_use_host_network: false
+    docker_network: "gitlab-runner-advanced-network"
+    docker_network_subnet: "192.168.300.0/24"
+    docker_network_gateway: "192.168.300.1"
+
+  tasks:
+    # Example 1: Modern approach with unified logic enabled
+    - name: Deploy with modern token and unified logic
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Modern registration
+        gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') | default('') }}"
+        gitlab_runner_tags: ["modern", "unified", "advanced"]
+        gitlab_runner_concurrent: 2
+        
+        # Unified logic settings
+        gitlab_runner_unified_logic_enabled: true
+        gitlab_runner_api_timeout: 60
+        gitlab_runner_validate_url: true
+        gitlab_runner_cleanup_temp_containers: true
+      when: lookup('env', 'GITLAB_RUNNER_TOKEN') is defined
+
+    # Example 2: Legacy approach with API disabled (CLI only)
+    - name: Deploy with registration token and CLI-only fallback
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Legacy registration
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') | default('') }}"
+        gitlab_runner_tags: ["legacy", "cli-only", "advanced"]
+        gitlab_runner_concurrent: 2
+        gitlab_runner_run_untagged: true
+        gitlab_runner_locked: false
+        gitlab_runner_access_level: "not_protected"
+        
+        # Unified logic settings - API disabled
+        gitlab_runner_unified_logic_enabled: true
+        gitlab_runner_api_first_enabled: false  # Skip API, use CLI directly
+        gitlab_runner_cli_fallback_enabled: true
+        gitlab_runner_validate_url: false  # Skip URL validation
+        gitlab_runner_cleanup_temp_containers: false  # Keep containers for debugging
+      when: lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined
+
+    # Example 3: Legacy approach with API-first but no fallback
+    - name: Deploy with registration token and API-only (no fallback)
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Legacy registration
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') | default('') }}"
+        gitlab_runner_name: "api-only-runner"
+        gitlab_runner_container_name: "gitlab-runner-api-only"
+        gitlab_runner_tags: ["legacy", "api-only", "advanced"]
+        gitlab_runner_concurrent: 2
+        
+        # Unified logic settings - API only, no fallback
+        gitlab_runner_unified_logic_enabled: true
+        gitlab_runner_api_first_enabled: true
+        gitlab_runner_cli_fallback_enabled: false  # Fail if API is unavailable
+        gitlab_runner_api_timeout: 120  # Longer timeout for API
+        gitlab_runner_validate_url: true
+        gitlab_runner_cleanup_temp_containers: true
+      when: lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined
+
+    # Example 4: Disabled unified logic (legacy behavior)
+    - name: Deploy with disabled unified logic
+      include_role:
+        name: gitlab-docker-runner
+      vars:
+        # Legacy registration
+        gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') | default('') }}"
+        gitlab_runner_name: "legacy-runner"
+        gitlab_runner_container_name: "gitlab-runner-legacy"
+        gitlab_runner_tags: ["legacy", "disabled-unified", "advanced"]
+        gitlab_runner_concurrent: 2
+        
+        # Disable unified logic
+        gitlab_runner_unified_logic_enabled: false  # Use legacy behavior
+        gitlab_runner_api_first_enabled: false
+        gitlab_runner_cli_fallback_enabled: false
+        gitlab_runner_validate_url: false
+        gitlab_runner_cleanup_temp_containers: true
+      when: lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') is defined
+
+  post_tasks:
+    - name: Display unified logic settings summary
+      debug:
+        msg: |
+          ========================================
+          UNIFIED LOGIC SETTINGS SUMMARY
+          ========================================
+          
+          Available settings:
+          - gitlab_runner_unified_logic_enabled: {{ gitlab_runner_unified_logic_enabled | default('true') }}
+          - gitlab_runner_api_first_enabled: {{ gitlab_runner_api_first_enabled | default('true') }}
+          - gitlab_runner_cli_fallback_enabled: {{ gitlab_runner_cli_fallback_enabled | default('true') }}
+          - gitlab_runner_validate_url: {{ gitlab_runner_validate_url | default('true') }}
+          - gitlab_runner_cleanup_temp_containers: {{ gitlab_runner_cleanup_temp_containers | default('true') }}
+          - gitlab_runner_api_timeout: {{ gitlab_runner_api_timeout | default('30') }}s
+          
+          Usage examples:
+          1. Modern token: Set GITLAB_RUNNER_TOKEN
+          2. Legacy API-first: Set GITLAB_RUNNER_REGISTRATION_TOKEN
+          3. Legacy CLI-only: Set GITLAB_RUNNER_REGISTRATION_TOKEN + api_first_enabled: false
+          4. Legacy API-only: Set GITLAB_RUNNER_REGISTRATION_TOKEN + cli_fallback_enabled: false
+          5. Disabled unified: Set gitlab_runner_unified_logic_enabled: false
+
+    - name: Check runner status
+      shell: docker ps --filter "name=gitlab-runner" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: runner_containers
+      failed_when: false
+
+    - name: Display runner status
+      debug:
+        var: runner_containers.stdout_lines 

@@ -47,14 +47,16 @@ session_timeout = {{ session_server_session_timeout }}
   {% if gitlab_runner_token and (gitlab_runner_registration_token is not defined or gitlab_runner_registration_token == "") -%}
   token = "{{ gitlab_runner_token }}"
   {% endif -%}
-  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_runner_id is defined and extracted_runner_id.stdout -%}
-  id = {{ extracted_runner_id.stdout | trim }}
+
+  {# LEGACY PATH (we filled extracted_* facts) #}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_runner_id is defined and extracted_runner_id -%}
+  id = {{ extracted_runner_id | trim }}
   {% endif -%}
-  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_runner_token is defined and extracted_runner_token.stdout -%}
-  token = "{{ extracted_runner_token.stdout | trim }}"
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_runner_token is defined and extracted_runner_token -%}
+  token = "{{ extracted_runner_token | trim }}"
   {% endif -%}
-  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_token_obtained_at is defined and extracted_token_obtained_at.stdout -%}
-  token_obtained_at = {{ extracted_token_obtained_at.stdout | trim }}
+  {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token and extracted_token_obtained_at is defined and extracted_token_obtained_at -%}
+  token_obtained_at = {{ extracted_token_obtained_at | trim }}
   {% endif -%}
   {% if gitlab_runner_registration_token is defined and gitlab_runner_registration_token -%}
   token_expires_at = 0001-01-01T00:00:00Z

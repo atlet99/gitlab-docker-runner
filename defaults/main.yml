@@ -7,6 +7,32 @@ gitlab_runner_version: "latest"
 gitlab_runner_concurrent: 4
 
 # ------------------------------
+# Unified Registration Logic Settings
+# ------------------------------
+# Enable unified registration logic (automatically detects modern/legacy mode)
+# Set to false to disable automatic mode detection
+gitlab_runner_unified_logic_enabled: true
+
+# Timeout for API registration attempts (in seconds)
+gitlab_runner_api_timeout: 30
+
+# Enable API-first approach for legacy registration
+# Set to false to skip API and use CLI directly
+gitlab_runner_api_first_enabled: true
+
+# Enable CLI fallback when API is unavailable
+# Set to false to fail if API is not available
+gitlab_runner_cli_fallback_enabled: true
+
+# Validate GitLab URL before registration
+# Set to false to skip URL validation
+gitlab_runner_validate_url: true
+
+# Cleanup temporary containers after CLI fallback
+# Set to false to keep temporary containers for debugging
+gitlab_runner_cleanup_temp_containers: true
+
+# ------------------------------
 # Global GitLab Runner settings (for config.toml template)
 # ------------------------------
 # Log level (debug, info, warn, error, fatal, panic)
@@ -37,22 +63,37 @@ runner_feature_flags: {}
 gitlab_runner_check_interval: 3
 # GitLab instance URL
 gitlab_runner_url: "https://gitlab.com/"
+
+# ------------------------------
+# Unified Registration Logic
+# ------------------------------
 # Authentication token for modern registration method (used when registration_token is not provided)
+# This token is used directly in the configuration without registration process
 gitlab_runner_token: ""
-# Registration token for legacy registration method (if provided, uses gitlab-runner register command)
+
+# Registration token for legacy registration method (if provided, uses API-first with CLI fallback)
+# This token is used to register the runner and obtain a permanent token
 gitlab_runner_registration_token: ""
-# Runner name
+
+# Runner name (used in both modern and legacy approaches)
 gitlab_runner_name: "my-runner"
-# Runner tags
+
+# Runner tags (used in both modern and legacy approaches)
 gitlab_runner_tags: []
+
 # Environment variables for runner
 gitlab_runner_environment_flags: []
+
 # Output limit in bytes (0 = unlimited)
 gitlab_runner_output_limit: 0
+
 # Request concurrency limit
 gitlab_runner_request_concurrency: 1
 
-# Runner behavior settings
+# ------------------------------
+# Legacy Registration Settings (API/CLI)
+# ------------------------------
+# Runner behavior settings (used in API registration)
 gitlab_runner_maximum_timeout: 0
 gitlab_runner_run_untagged: true
 gitlab_runner_locked: false
@@ -60,7 +101,9 @@ gitlab_runner_access_level: "not_protected"
 gitlab_runner_paused: false
 gitlab_runner_maintenance_note: ""
 
+# ------------------------------
 # Runner scripts and configuration
+# ------------------------------
 gitlab_runner_pre_get_sources_script: ""
 gitlab_runner_post_get_sources_script: ""
 gitlab_runner_pre_build_script: ""

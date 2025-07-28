@@ -5,11 +5,12 @@ This Ansible role deploys and configures GitLab Runner as a Docker container wit
 ## Features
 
 - **Docker-based deployment**: Runs GitLab Runner in a Docker container
+- **Unified registration logic**: Intelligent support for both modern (token) and legacy (registration_token) approaches
 - **Flexible configuration**: Extensive customization options for runner settings
 - **Network management**: Support for custom Docker networks and network per build
 - **Security focused**: Proper file permissions and security configurations
 - **Production ready**: Includes monitoring, logging, and backup considerations
-- **Dual registration support**: Supports both modern token-based and legacy registration methods
+- **API-first approach**: Uses GitLab API for registration when available, with CLI fallback
 - **Complete GitLab Runner support**: All configuration options supported via command-line arguments and templates
 - **Optimized deployment**: No post-registration file editing or container restarts
 - **Advanced Docker features**: GPU support, custom build directories, services, and more
@@ -64,20 +65,59 @@ gitlab_runner_registration_token: "your-registration-token"
 gitlab_runner_name: "my-runner"
 ```
 
-### Registration Method Selection
+### Unified Registration Logic
 
-The role automatically selects the registration method based on the provided variables:
+The role implements intelligent unified registration logic that automatically handles both modern and legacy approaches:
 
-1. **Legacy Method** (triggered when `gitlab_runner_registration_token` is provided):
-   - Uses `gitlab-runner register` command with `--template-config`
-   - All settings are applied via the comprehensive `config.toml.j2` template
-   - Suitable for initial runner setup
-   - **NEW**: Zero "crutches" - no post-registration modifications needed
+#### Modern Approach (Token-based)
+When `gitlab_runner_token` is provided:
+- Uses the token directly in the configuration
+- No registration process needed
+- Suitable for existing runners or when you have the authentication token
 
-2. **Modern Method** (triggered when `gitlab_runner_registration_token` is not provided):
-   - Uses `gitlab_runner_token` directly in `config.toml`
-   - All settings are applied via the comprehensive `config.toml.j2` template
-   - Suitable for existing runners or when you have the authentication token
+#### Legacy Approach (Registration Token)
+When `gitlab_runner_registration_token` is provided:
+1. **API-first**: Attempts to register via GitLab API (`POST /api/v4/runners`)
+2. **CLI fallback**: If API is unavailable, falls back to `gitlab-runner register` command
+3. **Token extraction**: Extracts runner token and ID from the registration process
+4. **Configuration generation**: Creates final `config.toml` with extracted data
+
+#### Automatic Mode Detection
+The role automatically detects the mode based on available variables:
+- **Modern mode**: When `gitlab_runner_token` is provided
+- **Legacy mode**: When `gitlab_runner_registration_token` is provided
+- **Validation**: Ensures at least one token is available
+
+#### Advanced Unified Logic Settings
+The role provides fine-grained control over the unified logic:
+
+```yaml
+# Enable/disable unified logic (default: true)
+gitlab_runner_unified_logic_enabled: true
+
+# API registration timeout in seconds (default: 30)
+gitlab_runner_api_timeout: 30
+
+# Enable API-first approach (default: true)
+gitlab_runner_api_first_enabled: true
+
+# Enable CLI fallback when API fails (default: true)
+gitlab_runner_cli_fallback_enabled: true
+
+# Validate GitLab URL before registration (default: true)
+gitlab_runner_validate_url: true
+
+# Cleanup temporary containers after CLI fallback (default: true)
+gitlab_runner_cleanup_temp_containers: true
+```
+
+#### Benefits of Unified Logic
+- **Single configuration**: One template handles both approaches
+- **API efficiency**: Uses GitLab API when available for faster registration
+- **Fallback reliability**: CLI fallback ensures compatibility
+- **Zero crutches**: No post-registration file modifications needed
+- **Production ready**: Handles network issues and API failures gracefully
+- **Configurable**: Fine-grained control over behavior
 
 ### Optional Variables
 
@@ -382,6 +422,108 @@ cache_azure_storage_domain: ""
         
         # Cache configuration
         cache_type: "s3"
+
+### Unified Logic Examples
+
+#### Example 1: Modern Token-based Registration
+```yaml
+---
+- name: Deploy GitLab Runner with modern token
+  hosts: all
+  become: true
+  vars:
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') }}"
+    gitlab_runner_name: "modern-runner"
+    gitlab_runner_tags: ["modern", "docker", "unified"]
+    gitlab_runner_concurrent: 2
+
+  roles:
+    - gitlab-docker-runner
+```
+
+#### Example 2: Legacy Registration with API Fallback
+```yaml
+---
+- name: Deploy GitLab Runner with registration token
+  hosts: all
+  become: true
+  vars:
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_registration_token: "{{ lookup('env', 'GITLAB_RUNNER_REGISTRATION_TOKEN') }}"
+    gitlab_runner_name: "legacy-runner"
+    gitlab_runner_tags: ["legacy", "docker", "unified"]
+    gitlab_runner_concurrent: 2
+    gitlab_runner_run_untagged: true
+    gitlab_runner_locked: false
+    gitlab_runner_access_level: "not_protected"
+
+  roles:
+    - gitlab-docker-runner
+```
+
+#### Example 3: Environment-based Registration Selection
+```yaml
+---
+- name: Deploy GitLab Runner with unified logic
+  hosts: all
+  become: true
+  vars:
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_name: "unified-runner"
+    gitlab_runner_tags: ["unified", "docker"]
+    gitlab_runner_concurrent: 2
+
+  roles:
+    - gitlab-docker-runner
+  # The role automatically detects the mode:
+  # - Modern if GITLAB_RUNNER_TOKEN is set
+  # - Legacy if GITLAB_RUNNER_REGISTRATION_TOKEN is set
+```
+
+#### Example 4: Advanced Configuration with S3 Cache
+```yaml
+---
+- name: Deploy advanced GitLab Runner
+  hosts: all
+  become: true
+  vars:
+    gitlab_runner_url: "https://gitlab.com/"
+    gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') }}"
+    gitlab_runner_name: "advanced-runner"
+    gitlab_runner_container_name: "gitlab-runner-advanced"
+    gitlab_runner_tags: ["advanced", "s3-cache", "unified"]
+    gitlab_runner_concurrent: 4
+    
+    # Docker settings
+    docker_privileged: true
+    docker_shm_size: 134217728  # 128 MB
+    docker_pull_policy: "always"
+    
+    # S3 cache configuration
+    cache_type: "s3"
+    cache_shared: true
+    cache_s3_server_address: "{{ lookup('env', 'S3_ENDPOINT') | default('s3.amazonaws.com') }}"
+    cache_s3_access_key: "{{ lookup('env', 'S3_ACCESS_KEY') }}"
+    cache_s3_secret_key: "{{ lookup('env', 'S3_SECRET_KEY') }}"
+    cache_s3_bucket_name: "{{ lookup('env', 'S3_BUCKET') }}"
+    cache_s3_insecure: false
+    
+    # Network settings
+    docker_use_host_network: false
+    docker_network: "gitlab-runner-advanced-network"
+    docker_network_subnet: "192.168.200.0/24"
+    docker_network_gateway: "192.168.200.1"
+    
+    # Logging and timeouts
+    gitlab_runner_log_level: "info"
+    gitlab_runner_log_format: "json"
+    gitlab_runner_check_interval: 5
+    gitlab_runner_shutdown_timeout: 60
+
+  roles:
+    - gitlab-docker-runner
+```
         cache_s3_server_address: "s3.amazonaws.com"
         cache_s3_access_key: "{{ vault_s3_access_key }}"
         cache_s3_secret_key: "{{ vault_s3_secret_key }}"
