@@ -19,6 +19,49 @@
       - gitlab_runner_registration_token length: {{ (gitlab_runner_registration_token | default('')) | length }}
       - _auth_mode: {{ _auth_mode }}
 
+# ---------- CLEANUP (optional) ----------
+- block:
+    - name: Stop & remove old runner container (if exists)
+      community.docker.docker_container:
+        name: "{{ gitlab_runner_container_name }}"
+        state: absent
+      failed_when: false
+
+    - name: Build final cleanup path list
+      set_fact:
+        _cleanup_paths: "{{ (gitlab_runner_cleanup_paths | default([])) + (gitlab_runner_cleanup_extra_paths | default([])) | unique }}"
+
+    - name: Remove old dirs/files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ _cleanup_paths }}"
+      when: item | length > 0
+
+    - name: Recreate runner directory
+      file:
+        path: "{{ runner_directory }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Recreate tmp dir
+      file:
+        path: "{{ runner_tmp_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: (Optional) docker prune
+      community.docker.docker_prune:
+        containers: true
+        images: false
+        volumes: false
+        networks: false
+        builder_cache: false
+      when: gitlab_runner_cleanup_prune_docker | bool
+  when: gitlab_runner_cleanup_before_register | bool
+
 # ---------- LEGACY ----------
 - block:
     - name: Debug legacy mode

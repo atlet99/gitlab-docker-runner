@@ -1,104 +1,67 @@
 # ------------------------------
 # Global GitLab Runner settings
 # ------------------------------
-# GitLab Runner version to use
 gitlab_runner_version: "latest"
-# Number of concurrent jobs
 gitlab_runner_concurrent: 4
 
 # ------------------------------
 # Unified Registration Logic Settings
 # ------------------------------
-# Enable unified registration logic (automatically detects modern/legacy mode)
-# Set to false to disable automatic mode detection
 gitlab_runner_unified_logic_enabled: true
-
-# Timeout for API registration attempts (in seconds)
 gitlab_runner_api_timeout: 30
-
-# Enable API-first approach for legacy registration
-# Set to false to skip API and use CLI directly
 gitlab_runner_api_first_enabled: true
-
-# Enable CLI fallback when API is unavailable
-# Set to false to fail if API is not available
 gitlab_runner_cli_fallback_enabled: true
-
-# Validate GitLab URL before registration
-# Set to false to skip URL validation
 gitlab_runner_validate_url: true
-
-# Cleanup temporary containers after CLI fallback
-# Set to false to keep temporary containers for debugging
 gitlab_runner_cleanup_temp_containers: true
+
+# -------- NEW: pre-register cleanup --------
+gitlab_runner_cleanup_before_register: true          # включить блок очистки
+gitlab_runner_cleanup_paths:
+  - "{{ runner_tmp_dir }}"
+  - "{{ runner_directory }}"
+  - "/cache"
+gitlab_runner_cleanup_extra_paths: []                # свои пути сюда
+gitlab_runner_cleanup_prune_docker: false            # docker system prune
 
 # ------------------------------
 # Global GitLab Runner settings (for config.toml template)
 # ------------------------------
-# Log level (debug, info, warn, error, fatal, panic)
 gitlab_runner_log_level: "info"
-# Log format (runner, text, json)
 gitlab_runner_log_format: "runner"
-# Sentry DSN for error reporting
 gitlab_runner_sentry_dsn: ""
-# Maximum age of connection to GitLab
 gitlab_runner_connection_max_age: "15m"
-# Address to listen on for metrics
 gitlab_runner_listen_address: ""
-# Timeout for graceful shutdown
 gitlab_runner_shutdown_timeout: 30
 
-# Session server
 session_server_listen_address: ""
 session_server_advertise_address: ""
 session_server_session_timeout: 1800
 
-# Feature flags
 runner_feature_flags: {}
 
 # ------------------------------
 # Runner config
 # ------------------------------
-# How often to check for new jobs (in seconds)
 gitlab_runner_check_interval: 3
-# GitLab instance URL
 gitlab_runner_url: "https://gitlab.com/"
 
 # ------------------------------
 # Unified Registration Logic
 # ------------------------------
-# Authentication token for modern registration method (used when registration_token is not provided)
-# This token is used directly in the configuration without registration process
-gitlab_runner_token: ""
-
-# Registration token for legacy registration method (if provided, uses API-first with CLI fallback)
-# This token is used to register the runner and obtain a permanent token
-gitlab_runner_registration_token: ""
-
-# GitLab Personal Access Token (for API registration)
-# Required for API-first registration approach
-# Obtained from GitLab Settings → Access Tokens (with 'api' scope)
+gitlab_runner_token: ""                 # modern
+gitlab_runner_registration_token: ""    # legacy
 gitlab_runner_personal_access_token: ""
 
-# Runner name (used in both modern and legacy approaches)
 gitlab_runner_name: "my-runner"
-
-# Runner tags (used in both modern and legacy approaches)
 gitlab_runner_tags: []
-
-# Environment variables for runner
 gitlab_runner_environment_flags: []
 
-# Output limit in bytes (0 = unlimited)
 gitlab_runner_output_limit: 0
-
-# Request concurrency limit
 gitlab_runner_request_concurrency: 1
 
 # ------------------------------
 # Legacy Registration Settings (API/CLI)
 # ------------------------------
-# Runner behavior settings (used in API registration)
 gitlab_runner_maximum_timeout: 0
 gitlab_runner_run_untagged: true
 gitlab_runner_locked: false
@@ -123,219 +86,126 @@ gitlab_runner_unhealthy_requests_limit: 0
 gitlab_runner_unhealthy_interval: "0s"
 gitlab_runner_job_status_final_update_retry_limit: 0
 
-
-
 # ------------------------------
 # Container name and directories
 # ------------------------------
-# Docker container name for GitLab Runner
 gitlab_runner_container_name: "gitlab-runner"
-# Directory on host to store runner configuration
 runner_directory: "/var/lib/gitlab-runner"
 
 # ------------------------------
 # Docker Executor basic
 # ------------------------------
-# Default Docker image for jobs
 docker_image: "alpine:latest"
-# Run containers in privileged mode
 docker_privileged: false
-# Docker volumes to mount
 docker_volumes:
   - "/var/run/docker.sock:/var/run/docker.sock"
   - "/cache:/cache"
-# Docker image pull policy
 docker_pull_policy: "if-not-present"
-# Shared memory size for containers (in bytes)
-docker_shm_size: 67108864 # 64 MB
-# Allowed pull policies
+docker_shm_size: 67108864
 docker_allowed_pull_policies: ["if-not-present", "always"]
-# Allowed Docker images
 docker_allowed_images: []
-# Allowed Docker services
 docker_allowed_services: []
-# Helper image for GitLab Runner
 docker_helper_image: ""
 
 # ------------------------------
 # Docker Executor advanced
 # ------------------------------
-# Disable OOM killer for containers
 docker_oom_kill_disable: false
-# Docker API timeout
 docker_timeout: "60s"
-# Docker pull timeout
 docker_pull_timeout: 3600
-# Docker retry count
 docker_retry: 3
-# CPU set for containers
 docker_cpuset_cpus: ""
-# Memory set for containers
 docker_cpuset_mems: ""
-# CPU limit for containers
 docker_cpus: ""
-# Docker capabilities to add
 docker_cap_add: []
-# Docker capabilities to drop
 docker_cap_drop: []
-# Docker devices to mount
 docker_devices: []
-# User namespace mode
 docker_userns_mode: ""
-# Disable Docker layer caching
 docker_disable_cache: false
-# Timeout for waiting for services
 docker_wait_for_services_timeout: 30
-# Extra hosts for containers
 docker_extra_hosts: []
-# Sysctls for containers
 docker_sysctls: {}
-# DNS servers for containers
 docker_dns: []
-# DNS search domains for containers
 docker_dns_search: []
-# Security options for containers
 docker_security_opt: []
-# Docker runtime
 docker_runtime: ""
-# Hostname for containers
 docker_hostname: ""
-# User for containers
 docker_user: ""
-# Container isolation (Windows only)
 docker_isolation: ""
 
-# Run services in privileged mode
 docker_services_privileged: false
-# Allowed privileged images
 docker_allowed_privileged_images: []
-# Allowed privileged services
 docker_allowed_privileged_services: []
 
-# ------------------------------
-# Docker Executor advanced (continued)
-# ------------------------------
-# Allowed users for Docker containers
 docker_allowed_users: []
-# Additional groups for Docker containers
 docker_group_add: []
-# Memory limit for containers
 docker_memory: ""
-# Memory swap limit for containers
 docker_memory_swap: ""
-# Memory soft limit for containers
 docker_memory_reservation: ""
-# CPU shares for containers
 docker_cpu_shares: ""
-# Cgroup parent for containers
 docker_cgroup_parent: ""
-# OOM score adjustment for containers
 docker_oom_score_adjust: ""
-# Security options for Docker services
 docker_services_security_opt: []
-# Device cgroup rules for containers
 docker_device_cgroup_rules: []
-# GPU devices for containers
 docker_gpus: ""
-# Device mapping for services
 docker_services_devices: {}
-# Volume driver for containers
 docker_volume_driver: ""
-# Volume driver options
 docker_volume_driver_ops: {}
-# Cache directory for Docker
 docker_cache_dir: ""
-# Volumes to inherit from other containers
 docker_volumes_from: []
-# IPC mode for containers
 docker_ipcmode: ""
-# MAC address for containers
 docker_mac_address: ""
-# Container links
 docker_links: []
-# Services limit
 docker_services_limit: -1
-# Service memory limit
 docker_service_memory: ""
-# Service memory swap limit
 docker_service_memory_swap: ""
-# Service memory soft limit
 docker_service_memory_reservation: ""
-# Service cgroup parent
 docker_service_cgroup_parent: ""
-# Service CPU set
 docker_service_cpuset_cpus: ""
-# Service CPU shares
 docker_service_cpu_shares: ""
-# Service CPUs
 docker_service_cpus: ""
-# Service GPUs
 docker_service_gpus: ""
-# Tmpfs mounts for containers
 docker_tmpfs: {}
-# Tmpfs mounts for services
 docker_services_tmpfs: {}
-# Helper image flavor
 docker_helper_image_flavor: "alpine"
-# Auto-set helper image architecture and OS
 docker_helper_image_autoset_arch_and_os: false
-# Container labels
 docker_container_labels: {}
-# Enable IPv6 for containers
 docker_enable_ipv6: false
-# Ulimit values for containers
 docker_ulimit: {}
-# Network MTU for containers
 docker_network_mtu: 0
 
-# Docker services configuration
 docker_services: []
 
 # ------------------------------
 # Network & build dir
 # ------------------------------
-# Create network per build
 runner_network_per_build: false
-# Docker network mode (bridge, host, none, or custom network name)
 docker_network_mode: "bridge"
-# Use host network for Docker containers (overrides docker_network_mode)
 docker_use_host_network: false
-
-# Optional custom network
-# Custom Docker network name for runner container (leave empty to use default bridge)
 docker_network: ""
-# Subnet for custom network (CIDR notation, e.g., "192.168.100.0/24")
 docker_network_subnet: ""
-# Gateway for custom network (e.g., "192.168.100.1")
 docker_network_gateway: ""
-# Additional network options
 docker_network_options: {}
 
 # ------------------------------
 # Timezone
 # ------------------------------
-# Timezone for runner container
 tz: "UTC"
 
 # ------------------------------
 # Network fallback
 # ------------------------------
-# Fallback IP address if ansible_default_ipv4.address is not available
 fallback_ip_address: "127.0.0.1"
 
 # ------------------------------
 # Cache configuration
 # ------------------------------
-# Cache type (s3, gcs, azure, local)
 cache_type: ""
-# Cache path (leave empty for default and runner will use base directory into bucket)
 cache_path: ""
-# Share cache between runners
 cache_shared: false
-# Maximum uploaded archive size for cache (in bytes)
 cache_max_uploaded_archive_size: 0
 
-# S3 cache configuration
+# S3
 cache_s3_server_address: ""
 cache_s3_access_key: ""
 cache_s3_secret_key: ""
@@ -351,13 +221,13 @@ cache_s3_path_style: false
 cache_s3_role_arn: ""
 cache_s3_upload_role_arn: ""
 
-# GCS cache configuration
+# GCS
 cache_gcs_access_id: ""
 cache_gcs_private_key: ""
 cache_gcs_credentials_file: ""
 cache_gcs_bucket_name: ""
 
-# Azure cache configuration
+# Azure
 cache_azure_account_name: ""
 cache_azure_account_key: ""
 cache_azure_container_name: ""
