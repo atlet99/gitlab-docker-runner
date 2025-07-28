@@ -134,8 +134,7 @@
   fail:
     msg: "Failed to obtain token for runner. Please check registration parameters."
   when: 
-    - extracted_runner_token is not defined 
-    - or extracted_runner_token == ""
+    - extracted_runner_token is not defined or extracted_runner_token == ""
 
 # ---------- CONFIGURATION CREATION ----------
 - name: Create runner directory
