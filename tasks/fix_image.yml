@@ -7,19 +7,18 @@
 
 - name: Remove broken image
   command: docker rmi -f {{ runner_image }}
-  when: _img_inspect.rc != 0 or
-        ('Internal Server Error' in (_img_inspect.stderr | default(''))) or
-        ('no such file or directory' in (_img_inspect.stderr | default('')))
+  when: >
+    _img_inspect.rc != 0 or
+    ('Internal Server Error' in (_img_inspect.stderr | default('') | string)) or
+    ('no such file or directory' in (_img_inspect.stderr | default('') | string))
 
 - name: Pull runner image
-  community.docker.docker_image:
-    name: "{{ runner_image }}"
-    source: pull
-    state: present
-    pull: true
+  command: docker pull {{ runner_image }}
+  register: _pull_fix
+  changed_when: "'Downloaded newer image' in (_pull_fix.stdout | default(''))"
 
 - name: Restart docker daemon (optional)
   service:
     name: docker
     state: restarted
-  when: _img_inspect.rc != 0 and docker_restart_on_overlay_error | default(false) | bool
+  when: docker_restart_on_overlay_error | default(false) | bool

@@ -1,22 +1,24 @@
-# roles/atlet99.gitlab-docker-runner/tasks/ensure_image.yml
 ---
-- name: Ensure GitLab Runner image is present
+- name: Build runner_image var
+  set_fact:
+    runner_image: "gitlab/gitlab-runner:{{ gitlab_runner_version | default('latest') }}"
+
+- name: Try pull GitLab Runner image (idempotent)
   community.docker.docker_image:
-    name: "gitlab/gitlab-runner"
-    tag: "{{ gitlab_runner_version | default('latest') }}"
+    name: "{{ runner_image }}"
     source: pull
     state: present
-    pull: true
     force_source: "{{ (docker_pull_policy | default('if-not-present')) == 'always' }}"
+    timeout: 300
   register: _runner_image
   failed_when: false
   changed_when: false
 
+# Hard-fix for overlay2 errors "no such file or directory"
 - block:
     - name: Remove broken image
       community.docker.docker_image:
-        name: "gitlab/gitlab-runner"
-        tag: "{{ gitlab_runner_version | default('latest') }}"
+        name: "{{ runner_image }}"
         state: absent
         force_absent: true
 
@@ -24,12 +26,11 @@
       command: docker image prune -f
       changed_when: false
 
-    - name: Pull image again after prune
-      community.docker.docker_image:
-        name: "gitlab/gitlab-runner"
-        tag: "{{ gitlab_runner_version | default('latest') }}"
-        source: pull
-        state: present
-        pull: true
-  when: _runner_image is failed or
-        (_runner_image.msg is defined and 'no such file or directory' in _runner_image.msg)
+    - name: Pull image again (shell fallback)
+      command: docker pull {{ runner_image }}
+      register: _pull_shell
+      changed_when: "'Downloaded newer image' in (_pull_shell.stdout | default(''))"
+  when: >
+    (_runner_image is failed)
+    or ('no such file or directory' in (_runner_image.msg | default('') | string))
+    or ('Internal Server Error' in (_runner_image.msg | default('') | string))
