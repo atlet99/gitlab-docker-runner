@@ -351,9 +351,6 @@ concurrent = {{ gitlab_runner_concurrent }}
 {% endfor -%}
 {% endif -%}
 
-{% if docker_helper_image_flavor -%}
-    helper_image_flavor = "{{ docker_helper_image_flavor }}"
-{% endif -%}
 {% if docker_helper_image_autoset_arch_and_os -%}
     helper_image_autoset_arch_and_os = {{ docker_helper_image_autoset_arch_and_os | lower }}
 {% endif -%}
