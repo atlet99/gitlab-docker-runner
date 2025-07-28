@@ -1,133 +1,133 @@
 {# ==================== config.toml.j2 ==================== #}
 
-{% if gitlab_runner_log_level %}
+{% if gitlab_runner_log_level -%}
 log_level = "{{ gitlab_runner_log_level }}"
-{% endif %}
-{% if gitlab_runner_log_format %}
+{% endif -%}
+{% if gitlab_runner_log_format -%}
 log_format = "{{ gitlab_runner_log_format }}"
-{% endif %}
-{% if gitlab_runner_check_interval is defined %}
+{% endif -%}
+{% if gitlab_runner_check_interval is defined -%}
 check_interval = {{ gitlab_runner_check_interval }}
-{% endif %}
-{% if gitlab_runner_sentry_dsn %}
+{% endif -%}
+{% if gitlab_runner_sentry_dsn -%}
 sentry_dsn = "{{ gitlab_runner_sentry_dsn }}"
-{% endif %}
-{% if gitlab_runner_connection_max_age %}
+{% endif -%}
+{% if gitlab_runner_connection_max_age -%}
 connection_max_age = "{{ gitlab_runner_connection_max_age }}"
-{% endif %}
-{% if gitlab_runner_listen_address %}
+{% endif -%}
+{% if gitlab_runner_listen_address -%}
 listen_address = "{{ gitlab_runner_listen_address }}"
-{% endif %}
-{% if gitlab_runner_shutdown_timeout is defined %}
+{% endif -%}
+{% if gitlab_runner_shutdown_timeout is defined -%}
 shutdown_timeout = {{ gitlab_runner_shutdown_timeout }}
-{% endif %}
+{% endif -%}
 
 concurrent = {{ gitlab_runner_concurrent }}
 
-{% if session_server_listen_address or session_server_advertise_address or session_server_session_timeout %}
+{% if session_server_listen_address or session_server_advertise_address or session_server_session_timeout -%}
 [session_server]
-{% if session_server_listen_address %}
+{% if session_server_listen_address -%}
   listen_address = "{{ session_server_listen_address }}"
-{% endif %}
-{% if session_server_advertise_address %}
+{% endif -%}
+{% if session_server_advertise_address -%}
   advertise_address = "{{ session_server_advertise_address }}"
-{% endif %}
-{% if session_server_session_timeout is defined %}
+{% endif -%}
+{% if session_server_session_timeout is defined -%}
   session_timeout = {{ session_server_session_timeout }}
-{% endif %}
-{% endif %}
+{% endif -%}
+{% endif -%}
 
 [[runners]]
   name = "{{ gitlab_runner_name }}"
   url  = "{{ gitlab_runner_url }}"
 
-{# ---------- MODERN ---------- #}
-{% if gitlab_runner_token and (gitlab_runner_registration_token | default('') | length == 0) %}
+{# ---------- MODERN (готовый token) ---------- #}
+{% if gitlab_runner_token and (gitlab_runner_registration_token | default('') | length == 0) -%}
   token = "{{ gitlab_runner_token }}"
-{% endif %}
+{% endif -%}
 
-{# ---------- LEGACY ---------- #}
-{% if gitlab_runner_registration_token and (extracted_runner_id is defined and extracted_runner_id) %}
+{# ---------- LEGACY (получили token/id при регистрации) ---------- #}
+{% if gitlab_runner_registration_token and (extracted_runner_id is defined and extracted_runner_id) -%}
   id = {{ extracted_runner_id | trim }}
-{% endif %}
-{% if gitlab_runner_registration_token and (extracted_runner_token is defined and extracted_runner_token) %}
+{% endif -%}
+{% if gitlab_runner_registration_token and (extracted_runner_token is defined and extracted_runner_token) -%}
   token = "{{ extracted_runner_token | trim }}"
-{% endif %}
-{% if gitlab_runner_registration_token and (extracted_token_obtained_at is defined and extracted_token_obtained_at) %}
+{% endif -%}
+{% if gitlab_runner_registration_token and (extracted_token_obtained_at is defined and extracted_token_obtained_at) -%}
   token_obtained_at = "{{ extracted_token_obtained_at | trim }}"
-{% endif %}
-{% if gitlab_runner_registration_token %}
+{% endif -%}
+{% if gitlab_runner_registration_token -%}
   token_expires_at = "0001-01-01T00:00:00Z"
-{% endif %}
+{% endif -%}
 
   executor = "docker"
 
-{% if gitlab_runner_tags %}
+{% if gitlab_runner_tags -%}
   tags = {{ gitlab_runner_tags | to_nice_json }}
-{% endif %}
+{% endif -%}
 
-{% if runner_feature_flags %}
+{% if runner_feature_flags -%}
   [runners.feature_flags]
-{% for ff_name, ff_value in runner_feature_flags.items() %}
+{% for ff_name, ff_value in runner_feature_flags.items() -%}
     {{ ff_name }} = {{ ff_value | lower }}
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if (gitlab_runner_output_limit | default(0) | int) > 0 %}
+{% if (gitlab_runner_output_limit | default(0) | int) > 0 -%}
   output_limit = {{ (gitlab_runner_output_limit | int) // 1024 }}
-{% endif %}
-{% if gitlab_runner_request_concurrency is defined %}
+{% endif -%}
+{% if gitlab_runner_request_concurrency is defined -%}
   request_concurrency = {{ gitlab_runner_request_concurrency }}
-{% endif %}
+{% endif -%}
 
-{% if gitlab_runner_pre_get_sources_script %}
+{% if gitlab_runner_pre_get_sources_script -%}
   pre_get_sources_script = "{{ gitlab_runner_pre_get_sources_script }}"
-{% endif %}
-{% if gitlab_runner_post_get_sources_script %}
+{% endif -%}
+{% if gitlab_runner_post_get_sources_script -%}
   post_get_sources_script = "{{ gitlab_runner_post_get_sources_script }}"
-{% endif %}
-{% if gitlab_runner_pre_build_script %}
+{% endif -%}
+{% if gitlab_runner_pre_build_script -%}
   pre_build_script = "{{ gitlab_runner_pre_build_script }}"
-{% endif %}
-{% if gitlab_runner_post_build_script %}
+{% endif -%}
+{% if gitlab_runner_post_build_script -%}
   post_build_script = "{{ gitlab_runner_post_build_script }}"
-{% endif %}
+{% endif -%}
 
-{% if gitlab_runner_debug_trace_disabled is defined %}
+{% if gitlab_runner_debug_trace_disabled is defined -%}
   debug_trace_disabled = {{ gitlab_runner_debug_trace_disabled | lower }}
-{% endif %}
-{% if gitlab_runner_safe_directory_checkout is defined %}
+{% endif -%}
+{% if gitlab_runner_safe_directory_checkout is defined -%}
   safe_directory_checkout = {{ gitlab_runner_safe_directory_checkout | lower }}
-{% endif %}
-{% if gitlab_runner_clean_git_config is defined %}
+{% endif -%}
+{% if gitlab_runner_clean_git_config is defined -%}
   clean_git_config = {{ gitlab_runner_clean_git_config | lower }}
-{% endif %}
-{% if gitlab_runner_shell %}
+{% endif -%}
+{% if gitlab_runner_shell -%}
   shell = "{{ gitlab_runner_shell }}"
-{% endif %}
-{% if gitlab_runner_clone_url %}
+{% endif -%}
+{% if gitlab_runner_clone_url -%}
   clone_url = "{{ gitlab_runner_clone_url }}"
-{% endif %}
-{% if gitlab_runner_unhealthy_requests_limit %}
+{% endif -%}
+{% if gitlab_runner_unhealthy_requests_limit -%}
   unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit }}
-{% endif %}
-{% if gitlab_runner_unhealthy_interval %}
+{% endif -%}
+{% if gitlab_runner_unhealthy_interval -%}
   unhealthy_interval = "{{ gitlab_runner_unhealthy_interval }}"
-{% endif %}
-{% if gitlab_runner_job_status_final_update_retry_limit %}
+{% endif -%}
+{% if gitlab_runner_job_status_final_update_retry_limit -%}
   job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit }}
-{% endif %}
+{% endif -%}
 
-{% if gitlab_runner_custom_build_dir_enabled is defined %}
+{% if gitlab_runner_custom_build_dir_enabled is defined -%}
   [runners.custom_build_dir]
     enabled = {{ gitlab_runner_custom_build_dir_enabled | lower }}
-{% endif %}
+{% endif -%}
 
-{% if runner_network_per_build %}
+{% if runner_network_per_build -%}
   environment = ["FF_NETWORK_PER_BUILD=1"{% if gitlab_runner_environment_flags %}{% for env_flag in gitlab_runner_environment_flags %}, "{{ env_flag }}"{% endfor %}{% endif %}]
-{% elif gitlab_runner_environment_flags %}
+{% elif gitlab_runner_environment_flags -%}
   environment = [{% for env_flag in gitlab_runner_environment_flags %}"{{ env_flag }}"{% if not loop.last %}, {% endif %}{% endfor %}]
-{% endif %}
+{% endif -%}
 
   [runners.docker]
     tls_verify = false
@@ -137,344 +137,352 @@ concurrent = {{ gitlab_runner_concurrent }}
     oom_kill_disable = {{ docker_oom_kill_disable | lower }}
     disable_cache = false
     volumes = {{ docker_volumes | to_nice_json }}
-{% if docker_shm_size %}
+{% if docker_shm_size -%}
     shm_size = {{ docker_shm_size }}
-{% endif %}
+{% endif -%}
 
-{% if not runner_network_per_build %}
-{% if docker_use_host_network %}
+{% if not runner_network_per_build -%}
+{% if docker_use_host_network -%}
     network_mode = "host"
-{% else %}
+{% else -%}
     network_mode = "{{ docker_network_mode }}"
-{% endif %}
-{% endif %}
+{% endif -%}
+{% endif -%}
 
-{% if docker_timeout %}
+{% if docker_timeout -%}
     docker_timeout = "{{ docker_timeout }}"
-{% endif %}
-{% if docker_pull_timeout %}
+{% endif -%}
+{% if docker_pull_timeout -%}
     pull_timeout  = {{ docker_pull_timeout }}
-{% endif %}
-{% if docker_retry %}
+{% endif -%}
+{% if docker_retry -%}
     docker_retry   = {{ docker_retry }}
-{% endif %}
-{% if docker_pull_policy %}
+{% endif -%}
+{% if docker_pull_policy -%}
     pull_policy  = ["{{ docker_pull_policy }}"]
-{% endif %}
-{% if docker_helper_image %}
+{% endif -%}
+{% if docker_helper_image -%}
     helper_image = "{{ docker_helper_image }}"
-{% endif %}
+{% endif -%}
 
-{% if docker_isolation %}
+{% if docker_isolation -%}
     isolation = "{{ docker_isolation }}"
-{% endif %}
-{% if docker_services_privileged %}
+{% endif -%}
+{% if docker_services_privileged -%}
     services_privileged = {{ docker_services_privileged | lower }}
-{% endif %}
-{% if docker_allowed_privileged_images %}
+{% endif -%}
+{% if docker_allowed_privileged_images -%}
     allowed_privileged_images = {{ docker_allowed_privileged_images | to_nice_json }}
-{% endif %}
-{% if docker_allowed_privileged_services %}
+{% endif -%}
+{% if docker_allowed_privileged_services -%}
     allowed_privileged_services = {{ docker_allowed_privileged_services | to_nice_json }}
-{% endif %}
+{% endif -%}
 
-{% if docker_cpuset_cpus %}
+{% if docker_cpuset_cpus -%}
     cpuset_cpus = "{{ docker_cpuset_cpus }}"
-{% endif %}
-{% if docker_cpuset_mems %}
+{% endif -%}
+{% if docker_cpuset_mems -%}
     cpuset_mems = "{{ docker_cpuset_mems }}"
-{% endif %}
-{% if docker_cpus %}
+{% endif -%}
+{% if docker_cpus -%}
     cpus = "{{ docker_cpus }}"
-{% endif %}
-{% if docker_cap_add %}
+{% endif -%}
+{% if docker_cap_add -%}
     cap_add = {{ docker_cap_add | to_nice_json }}
-{% endif %}
-{% if docker_cap_drop %}
+{% endif -%}
+{% if docker_cap_drop -%}
     cap_drop = {{ docker_cap_drop | to_nice_json }}
-{% endif %}
-{% if docker_devices %}
+{% endif -%}
+{% if docker_devices -%}
     devices = {{ docker_devices | to_nice_json }}
-{% endif %}
-{% if docker_userns_mode %}
+{% endif -%}
+{% if docker_userns_mode -%}
     userns_mode = "{{ docker_userns_mode }}"
-{% endif %}
-{% if docker_disable_cache %}
+{% endif -%}
+{% if docker_disable_cache -%}
     disable_cache = {{ docker_disable_cache | lower }}
-{% endif %}
-{% if docker_wait_for_services_timeout %}
+{% endif -%}
+{% if docker_wait_for_services_timeout -%}
     wait_for_services_timeout = {{ docker_wait_for_services_timeout }}
-{% endif %}
-{% if docker_extra_hosts %}
+{% endif -%}
+{% if docker_extra_hosts -%}
     extra_hosts = {{ docker_extra_hosts | to_nice_json }}
-{% endif %}
+{% endif -%}
 
-{% if docker_sysctls %}
+{% if docker_sysctls -%}
     [runners.docker.sysctls]
-{% for sysctl_key, sysctl_value in docker_sysctls.items() %}
+{% for sysctl_key, sysctl_value in docker_sysctls.items() -%}
       "{{ sysctl_key }}" = "{{ sysctl_value }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_dns %}
+{% if docker_dns -%}
     dns = {{ docker_dns | to_nice_json }}
-{% endif %}
-{% if docker_dns_search %}
+{% endif -%}
+{% if docker_dns_search -%}
     dns_search = {{ docker_dns_search | to_nice_json }}
-{% endif %}
-{% if docker_security_opt %}
+{% endif -%}
+{% if docker_security_opt -%}
     security_opt = {{ docker_security_opt | to_nice_json }}
-{% endif %}
-{% if docker_runtime %}
+{% endif -%}
+{% if docker_runtime -%}
     runtime = "{{ docker_runtime }}"
-{% endif %}
-{% if docker_hostname %}
+{% endif -%}
+{% if docker_hostname -%}
     hostname = "{{ docker_hostname }}"
-{% endif %}
-{% if docker_user %}
+{% endif -%}
+{% if docker_user -%}
     user = "{{ docker_user }}"
-{% endif %}
+{% endif -%}
 
-{% if docker_allowed_users %}
+{% if docker_allowed_users -%}
     allowed_users = {{ docker_allowed_users | to_nice_json }}
-{% endif %}
-{% if docker_group_add %}
+{% endif -%}
+{% if docker_group_add -%}
     group_add = {{ docker_group_add | to_nice_json }}
-{% endif %}
+{% endif -%}
 
-{% if docker_memory %}
+{% if docker_memory -%}
     memory = "{{ docker_memory }}"
-{% endif %}
-{% if docker_memory_swap %}
+{% endif -%}
+{% if docker_memory_swap -%}
     memory_swap = "{{ docker_memory_swap }}"
-{% endif %}
-{% if docker_memory_reservation %}
+{% endif -%}
+{% if docker_memory_reservation -%}
     memory_reservation = "{{ docker_memory_reservation }}"
-{% endif %}
-{% if docker_cpu_shares %}
+{% endif -%}
+{% if docker_cpu_shares -%}
     cpu_shares = {{ docker_cpu_shares }}
-{% endif %}
-{% if docker_cgroup_parent %}
+{% endif -%}
+{% if docker_cgroup_parent -%}
     cgroup_parent = "{{ docker_cgroup_parent }}"
-{% endif %}
-{% if docker_oom_score_adjust %}
+{% endif -%}
+{% if docker_oom_score_adjust -%}
     oom_score_adjust = {{ docker_oom_score_adjust }}
-{% endif %}
-{% if docker_services_security_opt %}
+{% endif -%}
+{% if docker_services_security_opt -%}
     services_security_opt = {{ docker_services_security_opt | to_nice_json }}
-{% endif %}
-{% if docker_device_cgroup_rules %}
+{% endif -%}
+{% if docker_device_cgroup_rules -%}
     device_cgroup_rules = {{ docker_device_cgroup_rules | to_nice_json }}
-{% endif %}
-{% if docker_gpus %}
+{% endif -%}
+{% if docker_gpus -%}
     gpus = "{{ docker_gpus }}"
-{% endif %}
-{% if docker_services_devices %}
+{% endif -%}
+{% if docker_services_devices -%}
     services_devices = {{ docker_services_devices | to_nice_json }}
-{% endif %}
-{% if docker_volume_driver %}
+{% endif -%}
+{% if docker_volume_driver -%}
     volume_driver = "{{ docker_volume_driver }}"
-{% endif %}
+{% endif -%}
 
-{% if docker_volume_driver_ops %}
+{% if docker_volume_driver_ops -%}
     [runners.docker.volume_driver_ops]
-{% for key, value in docker_volume_driver_ops.items() %}
+{% for key, value in docker_volume_driver_ops.items() -%}
       "{{ key }}" = "{{ value }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_cache_dir %}
+{% if docker_cache_dir -%}
     cache_dir = "{{ docker_cache_dir }}"
-{% endif %}
-{% if docker_volumes_from %}
+{% endif -%}
+{% if docker_volumes_from -%}
     volumes_from = {{ docker_volumes_from | to_nice_json }}
-{% endif %}
-{% if docker_ipcmode %}
+{% endif -%}
+{% if docker_ipcmode -%}
     ipcmode = "{{ docker_ipcmode }}"
-{% endif %}
-{% if docker_mac_address %}
+{% endif -%}
+{% if docker_mac_address -%}
     mac_address = "{{ docker_mac_address }}"
-{% endif %}
-{% if docker_links %}
+{% endif -%}
+{% if docker_links -%}
     links = {{ docker_links | to_nice_json }}
-{% endif %}
-{% if docker_services_limit is not none %}
+{% endif -%}
+{% if docker_services_limit is not none -%}
     services_limit = {{ docker_services_limit }}
-{% endif %}
+{% endif -%}
 
-{% if docker_service_memory %}
+{% if docker_service_memory -%}
     service_memory = "{{ docker_service_memory }}"
-{% endif %}
-{% if docker_service_memory_swap %}
+{% endif -%}
+{% if docker_service_memory_swap -%}
     service_memory_swap = "{{ docker_service_memory_swap }}"
-{% endif %}
-{% if docker_service_memory_reservation %}
+{% endif -%}
+{% if docker_service_memory_reservation -%}
     service_memory_reservation = "{{ docker_service_memory_reservation }}"
-{% endif %}
-{% if docker_service_cgroup_parent %}
+{% endif -%}
+{% if docker_service_cgroup_parent -%}
     service_cgroup_parent = "{{ docker_service_cgroup_parent }}"
-{% endif %}
-{% if docker_service_cpuset_cpus %}
+{% endif -%}
+{% if docker_service_cpuset_cpus -%}
     service_cpuset_cpus = "{{ docker_service_cpuset_cpus }}"
-{% endif %}
-{% if docker_service_cpu_shares %}
+{% endif -%}
+{% if docker_service_cpu_shares -%}
     service_cpu_shares = {{ docker_service_cpu_shares }}
-{% endif %}
-{% if docker_service_cpus %}
+{% endif -%}
+{% if docker_service_cpus -%}
     service_cpus = "{{ docker_service_cpus }}"
-{% endif %}
-{% if docker_service_gpus %}
+{% endif -%}
+{% if docker_service_gpus -%}
     service_gpus = "{{ docker_service_gpus }}"
-{% endif %}
+{% endif -%}
 
-{% if docker_allowed_images %}
+{% if docker_allowed_images -%}
     allowed_images = {{ docker_allowed_images | to_nice_json }}
-{% endif %}
-{% if docker_allowed_pull_policies %}
+{% endif -%}
+{% if docker_allowed_pull_policies -%}
     allowed_pull_policies = {{ docker_allowed_pull_policies | to_nice_json }}
-{% endif %}
-{% if docker_allowed_services %}
+{% endif -%}
+{% if docker_allowed_services -%}
     allowed_services = {{ docker_allowed_services | to_nice_json }}
-{% endif %}
+{% endif -%}
 
-{% if docker_tmpfs %}
+{% if docker_tmpfs -%}
     [runners.docker.tmpfs]
-{% for tmpfs_path, tmpfs_options in docker_tmpfs.items() %}
+{% for tmpfs_path, tmpfs_options in docker_tmpfs.items() -%}
       "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_services_tmpfs %}
+{% if docker_services_tmpfs -%}
     [runners.docker.services_tmpfs]
-{% for tmpfs_path, tmpfs_options in docker_services_tmpfs.items() %}
+{% for tmpfs_path, tmpfs_options in docker_services_tmpfs.items() -%}
       "{{ tmpfs_path }}" = "{{ tmpfs_options }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_helper_image_flavor %}
+{% if docker_helper_image_flavor -%}
     helper_image_flavor = "{{ docker_helper_image_flavor }}"
-{% endif %}
-{% if docker_helper_image_autoset_arch_and_os %}
+{% endif -%}
+{% if docker_helper_image_autoset_arch_and_os -%}
     helper_image_autoset_arch_and_os = {{ docker_helper_image_autoset_arch_and_os | lower }}
-{% endif %}
+{% endif -%}
 
-{% if docker_container_labels %}
+{% if docker_container_labels -%}
     [runners.docker.container_labels]
-{% for label_key, label_value in docker_container_labels.items() %}
+{% for label_key, label_value in docker_container_labels.items() -%}
       "{{ label_key }}" = "{{ label_value }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_enable_ipv6 %}
+{% if docker_enable_ipv6 -%}
     enable_ipv6 = {{ docker_enable_ipv6 | lower }}
-{% endif %}
+{% endif -%}
 
-{% if docker_ulimit %}
+{% if docker_ulimit -%}
     [runners.docker.ulimit]
-{% for ulimit_name, ulimit_value in docker_ulimit.items() %}
+{% for ulimit_name, ulimit_value in docker_ulimit.items() -%}
       "{{ ulimit_name }}" = "{{ ulimit_value }}"
-{% endfor %}
-{% endif %}
+{% endfor -%}
+{% endif -%}
 
-{% if docker_network_mtu %}
+{% if docker_network_mtu -%}
     network_mtu = {{ docker_network_mtu }}
-{% endif %}
+{% endif -%}
 
-{% if docker_services and docker_services|length > 0 %}
-{% for service in docker_services %}
+{% if docker_services and docker_services|length > 0 -%}
+{% for service in docker_services -%}
     [[runners.docker.services]]
       name = "{{ service.name }}"
-{% if service.alias %}      alias = "{{ service.alias }}"{% endif %}
-{% if service.entrypoint %}      entrypoint = {{ service.entrypoint | to_nice_json }}{% endif %}
-{% if service.command %}      command    = {{ service.command    | to_nice_json }}{% endif %}
-{% if service.environment %}      environment = {{ service.environment | to_nice_json }}{% endif %}
-{% endfor %}
-{% endif %}
+{% if service.alias -%}
+      alias = "{{ service.alias }}"
+{% endif -%}
+{% if service.entrypoint -%}
+      entrypoint = {{ service.entrypoint | to_nice_json }}
+{% endif -%}
+{% if service.command -%}
+      command    = {{ service.command    | to_nice_json }}
+{% endif -%}
+{% if service.environment -%}
+      environment = {{ service.environment | to_nice_json }}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
 
-{% if cache_type %}
+{% if cache_type -%}
   [runners.cache]
     Type = "{{ cache_type }}"
-{% if cache_path %}
+{% if cache_path -%}
     Path = "{{ cache_path }}"
-{% endif %}
+{% endif -%}
     Shared = {{ cache_shared | lower }}
-{% if cache_max_uploaded_archive_size %}
+{% if cache_max_uploaded_archive_size -%}
     MaxUploadedArchiveSize = {{ cache_max_uploaded_archive_size }}
-{% endif %}
+{% endif -%}
 
-{% if cache_type == "s3" %}
+{% if cache_type == "s3" -%}
     [runners.cache.s3]
-{% if cache_s3_server_address %}
+{% if cache_s3_server_address -%}
       ServerAddress = "{{ cache_s3_server_address }}"
-{% endif %}
-{% if cache_s3_access_key %}
+{% endif -%}
+{% if cache_s3_access_key -%}
       AccessKey = "{{ cache_s3_access_key }}"
-{% endif %}
-{% if cache_s3_secret_key %}
+{% endif -%}
+{% if cache_s3_secret_key -%}
       SecretKey = "{{ cache_s3_secret_key }}"
-{% endif %}
-{% if cache_s3_bucket_name %}
+{% endif -%}
+{% if cache_s3_bucket_name -%}
       BucketName = "{{ cache_s3_bucket_name }}"
-{% endif %}
-{% if cache_s3_bucket_location %}
+{% endif -%}
+{% if cache_s3_bucket_location -%}
       BucketLocation = "{{ cache_s3_bucket_location }}"
-{% endif %}
+{% endif -%}
       Insecure = {{ cache_s3_insecure | lower }}
-{% if cache_s3_authentication_type %}
+{% if cache_s3_authentication_type -%}
       AuthenticationType = "{{ cache_s3_authentication_type }}"
-{% endif %}
-{% if cache_s3_server_side_encryption %}
+{% endif -%}
+{% if cache_s3_server_side_encryption -%}
       ServerSideEncryption = "{{ cache_s3_server_side_encryption }}"
-{% endif %}
-{% if cache_s3_server_side_encryption_key_id %}
+{% endif -%}
+{% if cache_s3_server_side_encryption_key_id -%}
       ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"
-{% endif %}
-{% if cache_s3_dual_stack is defined %}
+{% endif -%}
+{% if cache_s3_dual_stack is defined -%}
       DualStack = {{ cache_s3_dual_stack | lower }}
-{% endif %}
-{% if cache_s3_accelerate %}
+{% endif -%}
+{% if cache_s3_accelerate -%}
       Accelerate = {{ cache_s3_accelerate | lower }}
-{% endif %}
-{% if cache_s3_path_style is defined %}
+{% endif -%}
+{% if cache_s3_path_style is defined -%}
       PathStyle = {{ cache_s3_path_style | lower }}
-{% endif %}
-{% if cache_s3_role_arn %}
+{% endif -%}
+{% if cache_s3_role_arn -%}
       RoleARN = "{{ cache_s3_role_arn }}"
-{% endif %}
-{% if cache_s3_upload_role_arn %}
+{% endif -%}
+{% if cache_s3_upload_role_arn -%}
       UploadRoleARN = "{{ cache_s3_upload_role_arn }}"
-{% endif %}
-{% endif %}
+{% endif -%}
+{% endif -%}
 
-{% if cache_type == "gcs" %}
+{% if cache_type == "gcs" -%}
     [runners.cache.gcs]
-{% if cache_gcs_access_id %}
+{% if cache_gcs_access_id -%}
       AccessID = "{{ cache_gcs_access_id }}"
-{% endif %}
-{% if cache_gcs_private_key %}
+{% endif -%}
+{% if cache_gcs_private_key -%}
       PrivateKey = "{{ cache_gcs_private_key }}"
-{% endif %}
-{% if cache_gcs_credentials_file %}
+{% endif -%}
+{% if cache_gcs_credentials_file -%}
       CredentialsFile = "{{ cache_gcs_credentials_file }}"
-{% endif %}
-{% if cache_gcs_bucket_name %}
+{% endif -%}
+{% if cache_gcs_bucket_name -%}
       BucketName = "{{ cache_gcs_bucket_name }}"
-{% endif %}
-{% endif %}
+{% endif -%}
+{% endif -%}
 
-{% if cache_type == "azure" %}
+{% if cache_type == "azure" -%}
     [runners.cache.azure]
-{% if cache_azure_account_name %}
+{% if cache_azure_account_name -%}
       AccountName = "{{ cache_azure_account_name }}"
-{% endif %}
-{% if cache_azure_account_key %}
+{% endif -%}
+{% if cache_azure_account_key -%}
       AccountKey = "{{ cache_azure_account_key }}"
-{% endif %}
-{% if cache_azure_container_name %}
+{% endif -%}
+{% if cache_azure_container_name -%}
       ContainerName = "{{ cache_azure_container_name }}"
-{% endif %}
-{% if cache_azure_storage_domain %}
+{% endif -%}
+{% if cache_azure_storage_domain -%}
       StorageDomain = "{{ cache_azure_storage_domain }}"
-{% endif %}
-{% endif %}
-{% endif %}
+{% endif -%}
+{% endif -%}
+{% endif -%}
