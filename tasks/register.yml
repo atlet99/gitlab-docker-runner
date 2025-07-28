@@ -166,6 +166,13 @@
           changed_when: false
           failed_when: false
 
+        - name: Extract token_obtained_at from temporary config
+          command: >
+            awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ _tmp_dir.path }}/config.tmp.toml
+          register: _parsed_obt
+          changed_when: false
+          failed_when: false
+
         - name: Set extracted runner variables (CLI fallback)
           set_fact:
             extracted_runner_token: "{{ _parsed_token.stdout | trim }}"
