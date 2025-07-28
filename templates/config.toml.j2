@@ -1,33 +1,23 @@
-#jinja2: trim_blocks=False, lstrip_blocks=False
-{# =========================
-   GitLab Runner config.toml template
-   Supports legacy (registration_token) & modern (token) flows
-   ========================= #}
+{# ===== GitLab Runner config.toml template ===== #}
 
 {% if gitlab_runner_log_level %}
 log_level = "{{ gitlab_runner_log_level }}"
 {% endif %}
-
 {% if gitlab_runner_log_format %}
 log_format = "{{ gitlab_runner_log_format }}"
 {% endif %}
-
 {% if gitlab_runner_check_interval is defined %}
 check_interval = {{ gitlab_runner_check_interval }}
 {% endif %}
-
 {% if gitlab_runner_sentry_dsn %}
 sentry_dsn = "{{ gitlab_runner_sentry_dsn }}"
 {% endif %}
-
 {% if gitlab_runner_connection_max_age %}
 connection_max_age = "{{ gitlab_runner_connection_max_age }}"
 {% endif %}
-
 {% if gitlab_runner_listen_address %}
 listen_address = "{{ gitlab_runner_listen_address }}"
 {% endif %}
-
 {% if gitlab_runner_shutdown_timeout is defined %}
 shutdown_timeout = {{ gitlab_runner_shutdown_timeout }}
 {% endif %}
@@ -51,19 +41,19 @@ concurrent = {{ gitlab_runner_concurrent }}
   name = "{{ gitlab_runner_name }}"
   url  = "{{ gitlab_runner_url }}"
 
-  {# --- MODERN STATIC TOKEN --- #}
+  {# -------- MODERN (static token already known) -------- #}
   {% if gitlab_runner_token and (gitlab_runner_registration_token | default('') | length == 0) %}
   token = "{{ gitlab_runner_token }}"
   {% endif %}
 
-  {# --- LEGACY: FILLED BY REGISTER TASKS --- #}
-  {% if gitlab_runner_registration_token and extracted_runner_id %}
+  {# -------- LEGACY (values extracted during registration) -------- #}
+  {% if gitlab_runner_registration_token and (extracted_runner_id is defined and extracted_runner_id) %}
   id = {{ extracted_runner_id | trim }}
   {% endif %}
-  {% if gitlab_runner_registration_token and extracted_runner_token %}
+  {% if gitlab_runner_registration_token and (extracted_runner_token is defined and extracted_runner_token) %}
   token = "{{ extracted_runner_token | trim }}"
   {% endif %}
-  {% if gitlab_runner_registration_token and extracted_token_obtained_at | default('') %}
+  {% if gitlab_runner_registration_token and (extracted_token_obtained_at is defined and extracted_token_obtained_at) %}
   token_obtained_at = {{ extracted_token_obtained_at | trim }}
   {% endif %}
   {% if gitlab_runner_registration_token %}
@@ -83,51 +73,26 @@ concurrent = {{ gitlab_runner_concurrent }}
   {% endfor %}
   {% endif %}
 
-  {% if gitlab_runner_output_limit and gitlab_runner_output_limit > 0 %}
-  output_limit = {{ gitlab_runner_output_limit // 1024 }}
+  {% if gitlab_runner_output_limit | default(0) | int > 0 %}
+  output_limit = {{ (gitlab_runner_output_limit | int) // 1024 }}
   {% endif %}
-
   {% if gitlab_runner_request_concurrency is defined %}
   request_concurrency = {{ gitlab_runner_request_concurrency }}
   {% endif %}
 
-  {% if gitlab_runner_pre_get_sources_script %}
-  pre_get_sources_script = "{{ gitlab_runner_pre_get_sources_script }}"
-  {% endif %}
-  {% if gitlab_runner_post_get_sources_script %}
-  post_get_sources_script = "{{ gitlab_runner_post_get_sources_script }}"
-  {% endif %}
-  {% if gitlab_runner_pre_build_script %}
-  pre_build_script = "{{ gitlab_runner_pre_build_script }}"
-  {% endif %}
-  {% if gitlab_runner_post_build_script %}
-  post_build_script = "{{ gitlab_runner_post_build_script }}"
-  {% endif %}
+  {% if gitlab_runner_pre_get_sources_script %}pre_get_sources_script  = "{{ gitlab_runner_pre_get_sources_script }}"{% endif %}
+  {% if gitlab_runner_post_get_sources_script %}post_get_sources_script = "{{ gitlab_runner_post_get_sources_script }}"{% endif %}
+  {% if gitlab_runner_pre_build_script %}pre_build_script              = "{{ gitlab_runner_pre_build_script }}"{% endif %}
+  {% if gitlab_runner_post_build_script %}post_build_script            = "{{ gitlab_runner_post_build_script }}"{% endif %}
 
-  {% if gitlab_runner_debug_trace_disabled is defined %}
-  debug_trace_disabled = {{ gitlab_runner_debug_trace_disabled | lower }}
-  {% endif %}
-  {% if gitlab_runner_safe_directory_checkout is defined %}
-  safe_directory_checkout = {{ gitlab_runner_safe_directory_checkout | lower }}
-  {% endif %}
-  {% if gitlab_runner_clean_git_config is defined %}
-  clean_git_config = {{ gitlab_runner_clean_git_config | lower }}
-  {% endif %}
-  {% if gitlab_runner_shell %}
-  shell = "{{ gitlab_runner_shell }}"
-  {% endif %}
-  {% if gitlab_runner_clone_url %}
-  clone_url = "{{ gitlab_runner_clone_url }}"
-  {% endif %}
-  {% if gitlab_runner_unhealthy_requests_limit %}
-  unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit }}
-  {% endif %}
-  {% if gitlab_runner_unhealthy_interval %}
-  unhealthy_interval = "{{ gitlab_runner_unhealthy_interval }}"
-  {% endif %}
-  {% if gitlab_runner_job_status_final_update_retry_limit %}
-  job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit }}
-  {% endif %}
+  {% if gitlab_runner_debug_trace_disabled is defined %}debug_trace_disabled         = {{ gitlab_runner_debug_trace_disabled | lower }}{% endif %}
+  {% if gitlab_runner_safe_directory_checkout is defined %}safe_directory_checkout   = {{ gitlab_runner_safe_directory_checkout | lower }}{% endif %}
+  {% if gitlab_runner_clean_git_config is defined %}clean_git_config                 = {{ gitlab_runner_clean_git_config | lower }}{% endif %}
+  {% if gitlab_runner_shell %}shell = "{{ gitlab_runner_shell }}"{% endif %}
+  {% if gitlab_runner_clone_url %}clone_url = "{{ gitlab_runner_clone_url }}"{% endif %}
+  {% if gitlab_runner_unhealthy_requests_limit %}unhealthy_requests_limit = {{ gitlab_runner_unhealthy_requests_limit }}{% endif %}
+  {% if gitlab_runner_unhealthy_interval %}unhealthy_interval = "{{ gitlab_runner_unhealthy_interval }}"{% endif %}
+  {% if gitlab_runner_job_status_final_update_retry_limit %}job_status_final_update_retry_limit = {{ gitlab_runner_job_status_final_update_retry_limit }}{% endif %}
 
   {% if gitlab_runner_custom_build_dir_enabled is defined %}
   [runners.custom_build_dir]
@@ -170,7 +135,7 @@ concurrent = {{ gitlab_runner_concurrent }}
 
     {% if docker_isolation %}isolation = "{{ docker_isolation }}"{% endif %}
     {% if docker_services_privileged %}services_privileged = {{ docker_services_privileged | lower }}{% endif %}
-    {% if docker_allowed_privileged_images %}allowed_privileged_images = {{ docker_allowed_privileged_images | to_nice_json }}{% endif %}
+    {% if docker_allowed_privileged_images %}allowed_privileged_images  = {{ docker_allowed_privileged_images  | to_nice_json }}{% endif %}
     {% if docker_allowed_privileged_services %}allowed_privileged_services = {{ docker_allowed_privileged_services | to_nice_json }}{% endif %}
 
     {% if docker_cpuset_cpus %}cpuset_cpus = "{{ docker_cpuset_cpus }}"{% endif %}
@@ -294,11 +259,11 @@ concurrent = {{ gitlab_runner_concurrent }}
     {% if cache_type == "s3" %}
     [runners.cache.s3]
       {% if cache_s3_server_address %}ServerAddress = "{{ cache_s3_server_address }}"{% endif %}
-      {% if cache_s3_access_key %}AccessKey     = "{{ cache_s3_access_key }}"{% endif %}
-      {% if cache_s3_secret_key %}SecretKey     = "{{ cache_s3_secret_key }}"{% endif %}
-      {% if cache_s3_bucket_name %}BucketName    = "{{ cache_s3_bucket_name }}"{% endif %}
+      {% if cache_s3_access_key %}AccessKey = "{{ cache_s3_access_key }}"{% endif %}
+      {% if cache_s3_secret_key %}SecretKey = "{{ cache_s3_secret_key }}"{% endif %}
+      {% if cache_s3_bucket_name %}BucketName = "{{ cache_s3_bucket_name }}"{% endif %}
       {% if cache_s3_bucket_location %}BucketLocation = "{{ cache_s3_bucket_location }}"{% endif %}
-      Insecure  = {{ cache_s3_insecure | lower }}
+      Insecure = {{ cache_s3_insecure | lower }}
       {% if cache_s3_authentication_type %}AuthenticationType = "{{ cache_s3_authentication_type }}"{% endif %}
       {% if cache_s3_server_side_encryption %}ServerSideEncryption = "{{ cache_s3_server_side_encryption }}"{% endif %}
       {% if cache_s3_server_side_encryption_key_id %}ServerSideEncryptionKeyID = "{{ cache_s3_server_side_encryption_key_id }}"{% endif %}
