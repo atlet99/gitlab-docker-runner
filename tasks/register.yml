@@ -140,21 +140,21 @@
           debug:
             msg: |
               Config file status:
-              - config_file_stat.exists: {{ config_file_stat.exists }}
-              - config_file_stat.size: {{ config_file_stat.size | default('NOT SET') }}
+              - config_file_stat.exists: {{ config_file_stat.stat.exists | default('NOT SET') }}
+              - config_file_stat.size: {{ config_file_stat.stat.size | default('NOT SET') }}
 
         - name: Display temporary config content
           command: cat {{ runner_directory }}/config.tmp.toml
           register: config_content
           failed_when: false
-          when: config_file_stat.exists
+          when: config_file_stat.stat.exists
 
         - name: Debug config content
           debug:
             msg: |
               Config file content:
               {{ config_content.stdout | default('FILE NOT FOUND OR EMPTY') }}
-          when: config_file_stat.exists
+          when: config_file_stat.stat.exists
 
         - name: Extract token from temporary config
           command: >
