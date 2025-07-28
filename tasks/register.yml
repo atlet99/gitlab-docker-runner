@@ -29,7 +29,7 @@
       uri:
         url: "{{ gitlab_runner_url }}"
         method: GET
-        status_code: [200, 401, 403]
+        status_code: [200,401,403]
         timeout: "{{ gitlab_runner_api_timeout }}"
       register: gitlab_url_check
       failed_when: false
@@ -101,7 +101,7 @@
             -v {{ runner_tmp_dir }}:/etc/gitlab-runner
             -e TZ={{ tz }}
             gitlab/gitlab-runner:{{ gitlab_runner_version }}
-            gitlab-runner register
+            register
             --non-interactive
             --config /etc/gitlab-runner/config.toml
             --url {{ gitlab_runner_url }}
