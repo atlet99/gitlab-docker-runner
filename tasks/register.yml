@@ -95,19 +95,26 @@
             state: directory
             mode: "0700"
 
+        - name: Build CSV tag list for CLI
+          set_fact:
+            _tag_list_csv: "{{ (gitlab_runner_tags | default([])) | join(',') }}"
+
         - name: Run one-shot container to register (legacy CLI)
           command: >
             docker run --rm -u 0:0
             -v {{ runner_tmp_dir }}:/etc/gitlab-runner
             -e TZ={{ tz }}
-            gitlab/gitlab-runner:{{ gitlab_runner_version }}
+            {{ runner_image | default('gitlab/gitlab-runner:' ~ gitlab_runner_version) }}
             register
             --non-interactive
             --config /etc/gitlab-runner/config.toml
             --url {{ gitlab_runner_url }}
             --registration-token {{ gitlab_runner_registration_token }}
             --name {{ gitlab_runner_name }}
-            --executor shell
+            --executor docker
+            {% if _tag_list_csv %}--tag-list {{ _tag_list_csv }}{% endif %}
+            --locked={{ gitlab_runner_locked | lower }}
+            --run-untagged={{ gitlab_runner_run_untagged | lower }}
           register: _cli_reg
           failed_when: false
 
