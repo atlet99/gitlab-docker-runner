@@ -7,6 +7,9 @@
   failed_when: docker_check.rc != 0
   changed_when: false
 
+- name: Ensure runner image exists
+  include_tasks: ensure_image.yml
+
 - name: Check Docker network (if needed)
   command: docker network inspect {{ docker_network }}
   register: network_check

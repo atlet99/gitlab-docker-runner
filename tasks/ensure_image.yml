@@ -1,0 +1,37 @@
+---
+# Pull image from registry
+
+- name: Ensure GitLab Runner image is present
+  community.docker.docker_image:
+    name: "gitlab/gitlab-runner"
+    tag: "{{ gitlab_runner_version | default('latest') }}"
+    source: pull
+    state: present
+    pull: true
+    force_source: "{{ (docker_pull_policy | default('if-not-present')) == 'always' }}"
+  register: _runner_image
+  failed_when: false
+
+# Hard-fix for overlay2 errors "no such file or directory"
+- block:
+    - name: Remove broken image
+     community.docker.docker_image:
+        name: "gitlab/gitlab-runner"
+        tag: "{{ gitlab_runner_version | default('latest') }}"
+        state: absent
+        force_absent: true
+
+    - name: Prune dangling images
+      command: docker image prune -f
+      changed_when: false
+
+    - name: Pull image again after prune
+      community.docker.docker_image:
+        name: "gitlab/gitlab-runner"
+        tag: "{{ gitlab_runner_version | default('latest') }}"
+        source: pull
+        state: present
+        pull: true
+  when: _runner_image is failed and
+        (_runner_image.msg is defined) and
+        ('no such file or directory' in _runner_image.msg)

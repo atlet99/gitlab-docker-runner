@@ -1,4 +1,3 @@
-# roles/atlet99.gitlab-docker-runner/tasks/fix_image.yml
 ---
 - name: Inspect runner image
   command: docker image inspect {{ runner_image }}
@@ -16,10 +15,11 @@
   community.docker.docker_image:
     name: "{{ runner_image }}"
     source: pull
-    pull_policy: always
+    state: present
+    pull: true
 
 - name: Restart docker daemon (optional)
   service:
     name: docker
     state: restarted
-  when: _img_inspect.rc != 0 and docker_restart_on_overlay_error | bool
+  when: _img_inspect.rc != 0 and docker_restart_on_overlay_error | default(false) | bool
