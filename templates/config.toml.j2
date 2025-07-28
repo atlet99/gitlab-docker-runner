@@ -43,21 +43,24 @@ concurrent = {{ gitlab_runner_concurrent | int }}
   url  = "{{ gitlab_runner_url }}"
 
 {# ---------- AUTH BLOCK (mutually exclusive) ---------- #}
+{% macro oneline(v) -%}{{ v|default('')|trim|replace('\r','')|replace('\n','') }}{% endmacro %}
+
 {% set use_reg = gitlab_runner_registration_token | default('') | length > 0 %}
+
 {% if not use_reg and gitlab_runner_token %}
-  token = "{{ gitlab_runner_token | trim | replace('\n','') }}"
+  token = "{{ oneline(gitlab_runner_token) }}"
 {% elif use_reg %}
-{%   if extracted_runner_id is defined and extracted_runner_id %}
-  id = {{ extracted_runner_id | trim | replace('\n','') | int }}
-{%   endif -%}
-{%   if extracted_runner_token is defined and extracted_runner_token %}
-  token = "{{ extracted_runner_token | trim | replace('\n','') }}"
-{%   endif -%}
-{%   if extracted_token_obtained_at is defined and extracted_token_obtained_at %}
-  token_obtained_at = "{{ extracted_token_obtained_at | trim | replace('\n','') }}"
-{%   endif -%}
+  {% if extracted_runner_id is defined and extracted_runner_id %}
+  id = {{ extracted_runner_id | string | regex_replace('[^0-9]', '') | int }}
+  {% endif %}
+  {% if extracted_runner_token is defined and extracted_runner_token %}
+  token = "{{ oneline(extracted_runner_token) }}"
+  {% endif %}
+  {% if extracted_token_obtained_at is defined and extracted_token_obtained_at %}
+  token_obtained_at = "{{ oneline(extracted_token_obtained_at) }}"
+  {% endif %}
   token_expires_at = "0001-01-01T00:00:00Z"
-{% endif -%}
+{% endif %}
 
   executor = "docker"
 
