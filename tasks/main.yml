@@ -1,6 +1,5 @@
 ---
-# Main tasks for GitLab Runner
-# Uses unified registration logic
+# Main tasks for GitLab Runner (Docker executor)
 
 - name: Check Docker installation
   command: docker --version
@@ -20,13 +19,21 @@
 
 - name: Create custom network (if needed)
   command: >
-    docker network create --driver bridge {% if docker_network_subnet is defined and docker_network_subnet != "" %} --subnet={{ docker_network_subnet }} {% endif %} {% if docker_network_gateway is defined and docker_network_gateway != "" %} --gateway={{ docker_network_gateway }} {% endif %} {% if docker_network_options is defined and docker_network_options|length > 0 %} {% for key, value in docker_network_options.items() %} --opt {{ key }}={{ value }} {% endfor %} {% endif %} {{ docker_network }}
+    docker network create --driver bridge
+    {% if docker_network_subnet %} --subnet={{ docker_network_subnet }}{% endif %}
+    {% if docker_network_gateway %} --gateway={{ docker_network_gateway }}{% endif %}
+    {% if docker_network_options is defined and docker_network_options|length > 0 %}
+    {% for key, value in docker_network_options.items() %}
+    --opt {{ key }}={{ value }}
+    {% endfor %}
+    {% endif %}
+    {{ docker_network }}
   when:
     - not runner_network_per_build
     - docker_network is defined
     - docker_network != ""
     - network_check.rc == 1
 
-# Include unified registration logic
+# Include unified GitLab Runner registration
 - name: Include unified GitLab Runner registration
   include_tasks: register.yml
