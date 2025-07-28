@@ -42,23 +42,23 @@ concurrent = {{ gitlab_runner_concurrent | int }}
   name = "{{ gitlab_runner_name }}"
   url  = "{{ gitlab_runner_url }}"
 
-{# ---------- AUTH BLOCK (mutually exclusive) ---------- #}
-{% macro oneline(v) -%}{{ v|default('')|trim|replace('\r','')|replace('\n','') }}{% endmacro %}
+{# ---------- HELPERS ---------- #}
+{% macro oneline(v) -%}{{ v|default('')|string|trim|replace('\r','')|replace('\n','') }}{% endmacro %}
+{% macro last_line(v) -%}{{ (v|default('')|string).splitlines()|last|trim }}{% endmacro %}
 
+{# ---------- AUTH BLOCK (mutually exclusive) ---------- #}
 {% set use_reg = gitlab_runner_registration_token | default('') | length > 0 %}
 
 {% if not use_reg and gitlab_runner_token %}
   token = "{{ oneline(gitlab_runner_token) }}"
 {% elif use_reg %}
-  {% if extracted_runner_id is defined and extracted_runner_id %}
-  id = {{ extracted_runner_id | string | regex_replace('[^0-9]', '') | int }}
-  {% endif %}
+  {# берем только последнюю строку из извлечённых значений #}
   {% if extracted_runner_token is defined and extracted_runner_token %}
-  token = "{{ oneline(extracted_runner_token) }}"
+  token = "{{ oneline(last_line(extracted_runner_token)) }}"
   {% endif %}
-  {% if extracted_token_obtained_at is defined and extracted_token_obtained_at %}
-  token_obtained_at = "{{ oneline(extracted_token_obtained_at) }}"
-  {% endif %}
+  {# id и token_obtained_at можно не писать вообще; если хочешь - используй last_line и очистку #}
+  {# id = {{ last_line(extracted_runner_id) | regex_replace('[^0-9]', '') | int }} #}
+  {# token_obtained_at = "{{ oneline(last_line(extracted_token_obtained_at)) }}" #}
   token_expires_at = "0001-01-01T00:00:00Z"
 {% endif %}
 

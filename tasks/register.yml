@@ -152,30 +152,21 @@
             msg: "CLI fallback did not create config.tmp.toml"
           when: not config_file_stat.stat.exists | default(false)
 
-        - name: Extract token from temporary config
-          command: awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
-          register: _parsed_token
-          changed_when: false
-          failed_when: false
-
-        - name: Extract id from temporary config
-          command: awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
-          register: _parsed_id
-          changed_when: false
-          failed_when: false
-
-        - name: Extract token_obtained_at from temporary config
-          command: awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
-          register: _parsed_obtained
-          changed_when: false
-          failed_when: false
+        - name: Parse tmp config with regex
+          set_fact:
+            _tokens: "{{ config_content.stdout | regex_findall('^\\s*token\\s*=\\s*\"([^\"]+)\"', multiline=True) }}"
+            _ids:    "{{ config_content.stdout | regex_findall('^\\s*id\\s*=\\s*(\\d+)', multiline=True) }}"
+            _times:  "{{ config_content.stdout | regex_findall('^\\s*token_obtained_at\\s*=\\s*([^\\n]+)', multiline=True) }}"
+          when: config_file_stat.stat.exists | default(false)
 
         - name: Set extracted runner variables (CLI fallback)
           set_fact:
-            extracted_runner_token: "{{ _parsed_token.stdout | trim }}"
-            extracted_runner_id: "{{ _parsed_id.stdout | trim }}"
-            extracted_token_obtained_at: "{{ _parsed_obtained.stdout | trim }}"
-          when: (_parsed_token.stdout | default('')) != ""
+            extracted_runner_token: "{{ (_tokens | last | default('')) | trim }}"
+            extracted_runner_id: "{{ (_ids | last | default('')) | trim }}"
+            extracted_token_obtained_at: "{{ (_times | last | default('')) | trim }}"
+          when:
+            - config_file_stat.stat.exists | default(false)
+            - (_tokens | default([])) | length > 0
 
         - name: Debug extracted variables after CLI fallback
           debug:
@@ -190,7 +181,7 @@
           when: gitlab_runner_cleanup_temp_containers | default(true) | bool
       when:
         - gitlab_runner_cli_fallback_enabled | bool
-        - extracted_runner_token is not defined
+        - (extracted_runner_token is not defined) or ((extracted_runner_token | length) == 0)
         - gl_runner_reg.status | default(0) != 201
   when: _auth_mode == 'legacy'
 
