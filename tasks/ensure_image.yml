@@ -1,6 +1,5 @@
+# roles/atlet99.gitlab-docker-runner/tasks/ensure_image.yml
 ---
-# Pull image from registry
-
 - name: Ensure GitLab Runner image is present
   community.docker.docker_image:
     name: "gitlab/gitlab-runner"
@@ -11,11 +10,11 @@
     force_source: "{{ (docker_pull_policy | default('if-not-present')) == 'always' }}"
   register: _runner_image
   failed_when: false
+  changed_when: false
 
-# Hard-fix for overlay2 errors "no such file or directory"
 - block:
     - name: Remove broken image
-     community.docker.docker_image:
+      community.docker.docker_image:
         name: "gitlab/gitlab-runner"
         tag: "{{ gitlab_runner_version | default('latest') }}"
         state: absent
@@ -32,6 +31,5 @@
         source: pull
         state: present
         pull: true
-  when: _runner_image is failed and
-        (_runner_image.msg is defined) and
-        ('no such file or directory' in _runner_image.msg)
+  when: _runner_image is failed or
+        (_runner_image.msg is defined and 'no such file or directory' in _runner_image.msg)
