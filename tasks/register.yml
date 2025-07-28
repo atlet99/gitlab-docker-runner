@@ -1,3 +1,7 @@
+---
+# Unified GitLab Runner registration logic (modern/legacy)
+
+# ---------- MODE DETECTION ----------
 - name: Determine authentication mode
   set_fact:
     _auth_mode: "{{ 'modern' if (gitlab_runner_token | default('')) | length > 0 else 'legacy' }}"
@@ -12,15 +16,14 @@
   debug:
     msg: |
       Authentication mode determination:
-      - gitlab_runner_unified_logic_enabled: {{ gitlab_runner_unified_logic_enabled | default('true') }}
+      - gitlab_runner_unified_logic_enabled: {{ gitlab_runner_unified_logic_enabled | default(true) }}
       - gitlab_runner_token length: {{ (gitlab_runner_token | default('')) | length }}
       - gitlab_runner_registration_token length: {{ (gitlab_runner_registration_token | default('')) | length }}
       - _auth_mode: {{ _auth_mode }}
 
-# ------------------------------
-# LEGACY branch (registration_token)
-# ------------------------------
+# ---------- LEGACY (registration_token) ----------
 - block:
+
     - name: Debug legacy mode
       debug:
         msg: "Using LEGACY mode with registration_token: {{ gitlab_runner_registration_token }}"
@@ -37,13 +40,13 @@
 
     - name: Fail if GitLab URL is not accessible
       fail:
-        msg: "GitLab URL {{ gitlab_runner_url }} is not accessible."
+        msg: "GitLab URL {{ gitlab_runner_url }} is not accessible. Please check the URL and network connectivity."
       when:
         - gitlab_runner_validate_url | bool
         - gitlab_url_check.failed
 
-    # ---- API first (minimal body for old GitLab) ----
-    - name: Register runner via API (legacy, minimal)
+    # ---- API-first try ----
+    - name: Register runner via API (legacy)
       uri:
         url: "{{ gitlab_runner_url }}/api/v4/runners"
         method: POST
@@ -51,6 +54,12 @@
         body:
           registration_token: "{{ gitlab_runner_registration_token }}"
           description: "{{ gitlab_runner_name }}"
+          tag_list: "{{ gitlab_runner_tags | default([]) }}"
+          run_untagged: "{{ gitlab_runner_run_untagged }}"
+          locked: "{{ gitlab_runner_locked }}"
+          access_level: "{{ gitlab_runner_access_level }}"
+          maintenance_note: "{{ gitlab_runner_maintenance_note }}"
+          maximum_timeout: "{{ gitlab_runner_maximum_timeout }}"
         status_code: 201
         validate_certs: true
         timeout: "{{ gitlab_runner_api_timeout }}"
@@ -63,7 +72,7 @@
         extracted_runner_id: "{{ gl_runner_reg.json.id }}"
         extracted_runner_token: "{{ gl_runner_reg.json.token }}"
         extracted_token_obtained_at: "{{ gl_runner_reg.json.token_expires_at | default('') }}"
-      when: gl_runner_reg is defined and gl_runner_reg.status == 201
+      when: gl_runner_reg.status == 201
 
     - name: Debug API registration result
       debug:
@@ -75,118 +84,109 @@
 
     # ---- CLI fallback ----
     - block:
+
         - name: Debug CLI fallback block
           debug:
             msg: |
               CLI fallback block execution:
-              - gitlab_runner_cli_fallback_enabled: {{ gitlab_runner_cli_fallback_enabled | default('true') }}
+              - gitlab_runner_cli_fallback_enabled: {{ gitlab_runner_cli_fallback_enabled | default(true) }}
               - gl_runner_reg.status: {{ gl_runner_reg.status | default('NOT SET') }}
+              - Condition: {{ gitlab_runner_cli_fallback_enabled | default(true) }} and ( {{ gl_runner_reg is not defined }} or {{ gl_runner_reg.status | default('NOT SET') }} != 201 )
 
-        - name: Create temporary container for CLI registration
-          community.docker.docker_container:
-            name: "{{ gitlab_runner_container_name }}-temp"
-            image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
-            state: started
-            restart_policy: "no"
-            volumes:
-              - "{{ runner_directory }}:/etc/gitlab-runner"
-            env:
-              TZ: "{{ tz }}"
+        - name: Create temp dir on host for tmp config
+          tempfile:
+            state: directory
+            suffix: gitlab-runner
+          register: _tmp_dir
 
-        - name: Register runner via CLI (legacy fallback, docker executor)
-          community.docker.docker_container_exec:
-          	container: "{{ gitlab_runner_container_name }}-temp"
-            tty: true
-            command: >
-              gitlab-runner register
-              --non-interactive
-              --url {{ gitlab_runner_url }}
-              --registration-token {{ gitlab_runner_registration_token }}
-              --name {{ gitlab_runner_name }}
-              --executor docker
-              --docker-image {{ docker_image }}
-              --docker-privileged {{ docker_privileged | ternary('true','false') }}
-              {% if gitlab_runner_tags | length > 0 %}--tag-list {{ gitlab_runner_tags | join(',') }}{% endif %}
-              --run-untagged {{ gitlab_runner_run_untagged | ternary('true','false') }}
-              --locked {{ gitlab_runner_locked | ternary('true','false') }}
-              --access-level {{ gitlab_runner_access_level }}
-              --config /etc/gitlab-runner/config.tmp.toml
+        - name: Run one-shot container to register (legacy CLI)
+          command: >
+            docker run --rm
+            -v {{ _tmp_dir.path }}:/work
+            -e TZ={{ tz }}
+            gitlab/gitlab-runner:{{ gitlab_runner_version }}
+            register
+            --non-interactive
+            --config /work/config.tmp.toml
+            --url {{ gitlab_runner_url }}
+            --registration-token {{ gitlab_runner_registration_token }}
+            --name {{ gitlab_runner_name }}
+            --executor shell
+            {% if gitlab_runner_tags | length > 0 %} --tag-list {{ gitlab_runner_tags | join(',') }}{% endif %}
+            --run-untagged={{ gitlab_runner_run_untagged | lower }}
+            --locked={{ gitlab_runner_locked | lower }}
+            --access-level {{ gitlab_runner_access_level }}
           register: _cli_reg
+          changed_when: false
           failed_when: false
 
-        - name: List /etc/gitlab-runner in temp container
-          community.docker.docker_container_exec:
-            container: "{{ gitlab_runner_container_name }}-temp"
-            command: ls -la /etc/gitlab-runner/
-          register: _debug_ls
-          failed_when: false
-
-        - debug:
+        - name: Debug CLI registration result
+          debug:
             msg: |
-              Container filesystem debug:\n{{ _debug_ls.stdout | default('NO OUTPUT') }}
+              CLI registration result:
+              rc={{ _cli_reg.rc | default('N/A') }}
+              stdout:
+              {{ (_cli_reg.stdout | default('')) | trim }}
+              stderr:
+              {{ (_cli_reg.stderr | default('')) | trim }}
 
-        - name: Show tmp config (inside container)
-          community.docker.docker_container_exec:
-            container: "{{ gitlab_runner_container_name }}-temp"
-            command: cat /etc/gitlab-runner/config.tmp.toml
-          register: config_content_in_container
-          failed_when: false
-
-        - debug:
-            msg: |
-              Tmp config content:\n{{ config_content_in_container.stdout | default('NO FILE') }}
-
-        - name: Stat tmp config on host
+        - name: Check if temporary config file exists
           stat:
-            path: "{{ runner_directory }}/config.tmp.toml"
+            path: "{{ _tmp_dir.path }}/config.tmp.toml"
           register: config_file_stat
 
-        - name: Extract token from tmp config (host)
+        - name: Fail if CLI didn't produce config
+          fail:
+            msg: "CLI fallback did not create config.tmp.toml"
+          when: not config_file_stat.stat.exists
+
+        - name: Show tmp config content (debug)
+          command: cat {{ _tmp_dir.path }}/config.tmp.toml
+          register: config_content
+          changed_when: false
+          failed_when: false
+
+        - name: Debug config content
+          debug:
+            msg: |
+              ---- config.tmp.toml ----
+              {{ config_content.stdout }}
+
+        - name: Extract token from temporary config
           command: >
-            awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_directory }}/config.tmp.toml
+            awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ _tmp_dir.path }}/config.tmp.toml
           register: _parsed_token
           changed_when: false
           failed_when: false
-          when: config_file_stat.stat.exists
 
-        - name: Extract id from tmp config (host)
+        - name: Extract id from temporary config
           command: >
-            awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_directory }}/config.tmp.toml
+            awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ _tmp_dir.path }}/config.tmp.toml
           register: _parsed_id
           changed_when: false
           failed_when: false
-          when: config_file_stat.stat.exists
-
-        - debug:
-            msg: |
-              Token extraction result:
-              - _parsed_token.stdout: "{{ _parsed_token.stdout | default('') }}"
-              - _parsed_id.stdout: "{{ _parsed_id.stdout | default('') }}"
-          when: config_file_stat.stat.exists
 
         - name: Set extracted runner variables (CLI fallback)
           set_fact:
             extracted_runner_token: "{{ _parsed_token.stdout | trim }}"
             extracted_runner_id: "{{ _parsed_id.stdout | trim }}"
-          when:
-            - config_file_stat.stat.exists
-            - _parsed_token.stdout is defined
-            - _parsed_token.stdout | length > 0
+          when: _parsed_token.stdout is defined and _parsed_token.stdout | trim != ""
 
-        - name: Remove temporary config
+        - name: Debug extracted variables after CLI fallback
+          debug:
+            msg: |
+              extracted_runner_token: {{ extracted_runner_token | default('NOT SET') }}
+              extracted_runner_id: {{ extracted_runner_id | default('NOT SET') }}
+
+        - name: Cleanup tmp dir
           file:
-            path: "{{ runner_directory }}/config.tmp.toml"
-            state: absent
-
-        - name: Stop and remove temporary container
-          community.docker.docker_container:
-            name: "{{ gitlab_runner_container_name }}-temp"
+            path: "{{ _tmp_dir.path }}"
             state: absent
           when: gitlab_runner_cleanup_temp_containers | bool
 
       when:
         - gitlab_runner_cli_fallback_enabled | bool
-        - (gl_runner_reg is not defined or gl_runner_reg.status != 201)
+        - (gl_runner_reg is not defined) or (gl_runner_reg.status != 201)
 
   when: _auth_mode == 'legacy'
 
@@ -195,11 +195,10 @@
     msg: |
       Legacy block condition check:
       - _auth_mode: {{ _auth_mode }}
+      - _auth_mode == 'legacy': {{ _auth_mode == 'legacy' }}
       - gitlab_runner_registration_token: "{{ gitlab_runner_registration_token | default('NOT SET') }}"
 
-# ------------------------------
-# MODERN branch (token already issued)
-# ------------------------------
+# ---------- MODERN (token already exists) ----------
 - block:
     - name: Debug modern mode
       debug:
@@ -215,45 +214,17 @@
     msg: |
       Modern block condition check:
       - _auth_mode: {{ _auth_mode }}
+      - _auth_mode == 'modern': {{ _auth_mode == 'modern' }}
       - gitlab_runner_token: "{{ gitlab_runner_token | default('NOT SET') }}"
 
-# ------------------------------
-# Last chance: read from existing config (if any)
-# ------------------------------
-- block:
-    - stat:
-        path: "{{ runner_directory }}/config.toml"
-      register: _final_cfg
-
-    - slurp:
-        src: "{{ runner_directory }}/config.toml"
-      register: _final_cfg_b64
-      when: _final_cfg.stat.exists
-
-    - set_fact:
-        _final_cfg_text: "{{ _final_cfg_b64.content | b64decode }}"
-      when: _final_cfg.stat.exists
-
-    - set_fact:
-        extracted_runner_token: "{{ extracted_runner_token | default('') or (_final_cfg_text | regex_search('token\\s*=\\s*\"([^\"]+)\"', '\\1')) | default('') }}"
-        extracted_runner_id: "{{ extracted_runner_id | default('') or (_final_cfg_text | regex_search('id\\s*=\\s*([0-9]+)', '\\1')) | default('') }}"
-      when: _final_cfg.stat.exists
-  when: extracted_runner_token is not defined or extracted_runner_token == ""
-
-# Ensure vars exist (avoid undefined)
-- set_fact:
-    extracted_runner_token: "{{ extracted_runner_token | default('') }}"
-    extracted_runner_id: "{{ extracted_runner_id | default('') }}"
-
-# ------------------------------
-# Validation
-# ------------------------------
+# ---------- VALIDATION ----------
 - name: Debug token status
   debug:
     msg: |
       Token status:
       - _auth_mode: {{ _auth_mode }}
-      - extracted_runner_token: "{{ extracted_runner_token }}"
+      - extracted_runner_token is defined: {{ extracted_runner_token is defined }}
+      - extracted_runner_token: "{{ extracted_runner_token | default('NOT SET') }}"
       - gitlab_runner_token: "{{ gitlab_runner_token | default('NOT SET') }}"
       - gitlab_runner_registration_token: "{{ gitlab_runner_registration_token | default('NOT SET') }}"
 
@@ -261,12 +232,9 @@
   fail:
     msg: "Failed to obtain token for runner. Please check registration parameters."
   when:
-    - (_auth_mode == 'modern' and (gitlab_runner_token | length == 0))
-    - (_auth_mode == 'legacy' and (extracted_runner_token | length == 0))
+    - extracted_runner_token is not defined or extracted_runner_token | trim == ""
 
-# ------------------------------
-# Render config.toml
-# ------------------------------
+# ---------- CONFIGURATION CREATION ----------
 - name: Create runner directory
   file:
     path: "{{ runner_directory }}"
@@ -281,10 +249,8 @@
     dest: "{{ runner_directory }}/config.toml"
     mode: '0600'
 
-# ------------------------------
-# Start/Restart main runner container
-# ------------------------------
-- name: (Re)start GitLab Runner container (host network)
+# ---------- START/RESTART CONTAINER ----------
+- name: (Re)start GitLab Runner container (with host network)
   community.docker.docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
@@ -300,7 +266,7 @@
     state: started
   when: docker_use_host_network | bool
 
-- name: (Re)start GitLab Runner container (bridge/custom network)
+- name: (Re)start GitLab Runner container (with custom/default network)
   community.docker.docker_container:
     name: "{{ gitlab_runner_container_name }}"
     image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
@@ -316,9 +282,7 @@
     state: started
   when: not docker_use_host_network | bool
 
-# ------------------------------
-# Verify
-# ------------------------------
+# ---------- VERIFY ----------
 - name: Wait for container to be ready
   wait_for:
     timeout: 30
