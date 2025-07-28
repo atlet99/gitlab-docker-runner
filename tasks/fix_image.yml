@@ -1,0 +1,25 @@
+# roles/atlet99.gitlab-docker-runner/tasks/fix_image.yml
+---
+- name: Inspect runner image
+  command: docker image inspect {{ runner_image }}
+  register: _img_inspect
+  failed_when: false
+  changed_when: false
+
+- name: Remove broken image
+  command: docker rmi -f {{ runner_image }}
+  when: _img_inspect.rc != 0 or
+        ('Internal Server Error' in (_img_inspect.stderr | default(''))) or
+        ('no such file or directory' in (_img_inspect.stderr | default('')))
+
+- name: Pull runner image
+  community.docker.docker_image:
+    name: "{{ runner_image }}"
+    source: pull
+    pull_policy: always
+
+- name: Restart docker daemon (optional)
+  service:
+    name: docker
+    state: restarted
+  when: _img_inspect.rc != 0 and docker_restart_on_overlay_error | bool

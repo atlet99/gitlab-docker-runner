@@ -362,3 +362,8 @@ cache_azure_account_name: ""
 cache_azure_account_key: ""
 cache_azure_container_name: ""
 cache_azure_storage_domain: ""
+
+# Docker Executor settings fixer
+gitlab_runner_fix_broken_image: true
+docker_restart_on_overlay_error: false
+runner_tmp_dir: "/tmp/gitlab-runner-register"
