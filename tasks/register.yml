@@ -29,7 +29,7 @@
       uri:
         url: "{{ gitlab_runner_url }}"
         method: GET
-        status_code: [200,401,403]
+        status_code: [200, 401, 403]
         timeout: "{{ gitlab_runner_api_timeout }}"
       register: gitlab_url_check
       failed_when: false
@@ -79,13 +79,6 @@
           - gl_runner_reg.status: {{ gl_runner_reg.status | default('NOT SET') }}
           - extracted_runner_token: {{ extracted_runner_token | default('NOT SET') }}
 
-    # ---------- IMAGE FIX ----------
-    - name: Ensure gitlab-runner image is sane
-      vars:
-        runner_image: "gitlab/gitlab-runner:{{ gitlab_runner_version }}"
-      include_tasks: fix_image.yml
-      when: gitlab_runner_fix_broken_image | bool
-
     # ---------- CLI FALLBACK ----------
     - block:
         - name: Debug CLI fallback block
@@ -104,13 +97,13 @@
 
         - name: Run one-shot container to register (legacy CLI)
           command: >
-            docker run --rm
-            -v {{ runner_tmp_dir }}:/work
+            docker run --rm -u 0:0
+            -v {{ runner_tmp_dir }}:/etc/gitlab-runner
             -e TZ={{ tz }}
             gitlab/gitlab-runner:{{ gitlab_runner_version }}
             gitlab-runner register
             --non-interactive
-            --config /work/config.tmp.toml
+            --config /etc/gitlab-runner/config.toml
             --url {{ gitlab_runner_url }}
             --registration-token {{ gitlab_runner_registration_token }}
             --name {{ gitlab_runner_name }}
@@ -130,11 +123,11 @@
 
         - name: Check if temporary config file exists
           stat:
-            path: "{{ runner_tmp_dir }}/config.tmp.toml"
+            path: "{{ runner_tmp_dir }}/config.toml"
           register: config_file_stat
 
         - name: Show tmp config content (debug)
-          command: cat {{ runner_tmp_dir }}/config.tmp.toml
+          command: cat {{ runner_tmp_dir }}/config.toml
           register: config_content
           failed_when: false
           when: config_file_stat.stat.exists | default(false)
@@ -142,29 +135,29 @@
         - name: Debug config content
           debug:
             msg: |
-              ---- config.tmp.toml ----
+              ---- config.toml (tmp) ----
               {{ config_content.stdout | default('FILE NOT FOUND') }}
           when: config_file_stat.stat.exists | default(false)
 
         - name: Fail if CLI didn't produce config
           fail:
-            msg: "CLI fallback did not create config.tmp.toml"
+            msg: "CLI fallback did not create config.toml"
           when: not config_file_stat.stat.exists | default(false)
 
         - name: Extract token from temporary config
-          command: awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
+          command: awk -F'=' '/^[[:space:]]*token[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
           register: _parsed_token
           changed_when: false
           failed_when: false
 
         - name: Extract id from temporary config
-          command: awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
+          command: awk -F'=' '/^[[:space:]]*id[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
           register: _parsed_id
           changed_when: false
           failed_when: false
 
         - name: Extract token_obtained_at from temporary config
-          command: awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.tmp.toml
+          command: awk -F'=' '/^[[:space:]]*token_obtained_at[[:space:]]*=/ {gsub(/[" ]/,"",$2);print $2}' {{ runner_tmp_dir }}/config.toml
           register: _parsed_obtained
           changed_when: false
           failed_when: false
@@ -186,6 +179,7 @@
           file:
             path: "{{ runner_tmp_dir }}"
             state: absent
+          when: gitlab_runner_cleanup_temp_containers | default(true) | bool
       when:
         - gitlab_runner_cli_fallback_enabled | bool
         - extracted_runner_token is not defined
@@ -233,7 +227,7 @@
 - name: Check that token was obtained
   fail:
     msg: "Failed to obtain token for runner. Please check registration parameters."
-  when: extracted_runner_token is not defined or extracted_runner_token | length == 0
+  when: extracted_runner_token is not defined or (extracted_runner_token | length) == 0
 
 # ---------- CONFIG & CONTAINER ----------
 - name: Create runner directory
