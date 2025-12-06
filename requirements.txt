@@ -45,7 +45,7 @@ setuptools==80.9.0
 stevedore==5.4.1
 subprocess-tee==0.4.2
 typing_extensions==4.14.1
-urllib3==2.5.0
+urllib3==2.6.0
 wcmatch==10.1
 yamllint==1.37.1
 zipp==3.23.0
