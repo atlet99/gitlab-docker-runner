@@ -3,7 +3,7 @@ ansible-compat==25.6.0
 ansible-core==2.18.7
 ansible-lint==25.6.1
 attrs==25.3.0
-black==25.1.0
+black==26.3.1
 bracex==2.6
 certifi==2025.7.14
 cffi==1.17.1
