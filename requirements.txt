@@ -35,7 +35,7 @@ psutil==7.0.0
 pycparser==2.22
 PyYAML==6.0.2
 referencing==0.36.2
-requests==2.32.4
+requests==2.33.0
 requestsexceptions==1.4.0
 resolvelib==1.0.1
 rpds-py==0.26.0
